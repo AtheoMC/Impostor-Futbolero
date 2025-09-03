@@ -120,6 +120,31 @@
         .player-card img {
             border-radius: 50%;
         }
+        .voting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .vote-btn {
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            background-color: #444444;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-align: center;
+        }
+        .vote-btn:hover {
+            background-color: #555555;
+        }
+        .vote-btn.voted {
+            background-color: #10b981;
+        }
+        .player-vote-count {
+            color: #10b981;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -132,17 +157,9 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, updateDoc, arrayUnion, addDoc, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
-            authDomain: "impostor-futbolero-online.firebaseapp.com",
-            projectId: "impostor-futbolero-online",
-            storageBucket: "impostor-futbolero-online.firebasestorage.app",
-            messagingSenderId: "1067586840575",
-            appId: "1:1067586840575:web:32889c085f7cf461bfa9ca",
-            measurementId: "G-W7NY2T2V2C"
-        };
-
+        // Firebase Configuration (DO NOT CHANGE)
+        const firebaseConfig = JSON.parse('{"projectId":"impostor-futbolero-online","appId":"1:1067586840575:web:32889c085f7cf461bfa9ca","apiKey":"AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA","authDomain":"impostor-futbolero-online.firebaseapp.com","storageBucket":"impostor-futbolero-online.firebasestorage.app"}');
+        const __app_id = "el_impostor_futbolero";
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -154,6 +171,7 @@
         let playerRole = 'tripulante';
         let secretPlayerName = '';
         let isImpostor = false;
+        let hasVoted = false;
 
         const MIN_PLAYERS = 3;
 
@@ -417,7 +435,7 @@
             { name: "Ismaël Koné", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kone" }
         ];
 
-        // Renders the main lobby UI
+        // Renders the initial lobby UI
         const renderLobby = () => {
             const app = document.getElementById('app');
             app.innerHTML = `
@@ -433,6 +451,7 @@
                 <div id="playerList" class="players-list hidden">
                     <h2 class="text-xl font-semibold mt-6 mb-2">Jugadores en la sala:</h2>
                     <ul id="playersUl" class="list-disc pl-5 text-gray-400"></ul>
+                    <p class="text-gray-500 mt-2 text-sm" id="playerRoomId"></p>
                 </div>
             `;
             document.getElementById('createRoomBtn').addEventListener('click', createRoom);
@@ -480,7 +499,26 @@
                     </div>
                 `;
             }
+
+            // Players list below the game info
+            content += `
+                <div id="playerList" class="players-list">
+                    <h2 class="text-xl font-semibold mt-6 mb-2">Jugadores:</h2>
+                    <div class="voting-grid">
+                        ${players.map(player => `
+                            <button id="voteBtn-${player.id}" data-player-id="${player.id}" class="vote-btn flex flex-col items-center">
+                                <img src="${player.role === 'impostor' ? 'https://placehold.co/64x64/ef4444/ffffff?text=I' : 'https://placehold.co/64x64/10b981/ffffff?text=T'}" alt="${player.name}" class="w-16 h-16 rounded-full mb-2">
+                                <span class="text-sm">${player.name}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+                <button id="endGameBtn" class="btn btn-secondary mt-6">Iniciar Votación</button>
+            `;
+
             app.innerHTML = content;
+
+            document.getElementById('endGameBtn').addEventListener('click', startVoting);
         };
 
         // Renders the voting UI
@@ -489,19 +527,24 @@
             app.innerHTML = `
                 <h1 class="title">¡Hora de votar!</h1>
                 <p class="text-lg text-gray-300 mb-6">¿Quién es el impostor?</p>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="voting-grid">
                     ${players.map(player => `
-                        <button data-player-id="${player.id}" class="btn bg-gray-600 hover:bg-gray-500">
-                            ${player.name}
+                        <button data-player-id="${player.id}" class="vote-btn ${hasVoted ? 'voted' : ''}">
+                            <img src="https://placehold.co/64x64/4f46e5/ffffff?text=Voto" alt="${player.name}" class="w-16 h-16 rounded-full mb-2">
+                            <span class="text-sm">${player.name}</span>
+                            <div class="player-vote-count" id="votes-${player.id}"></div>
                         </button>
                     `).join('')}
                 </div>
             `;
-            document.querySelectorAll('.btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const votedPlayerId = e.target.dataset.playerId;
-                    submitVote(votedPlayerId);
-                });
+
+            document.querySelectorAll('.vote-btn').forEach(button => {
+                if (!hasVoted) {
+                    button.addEventListener('click', (e) => {
+                        const votedPlayerId = e.currentTarget.dataset.playerId;
+                        submitVote(votedPlayerId);
+                    });
+                }
             });
         };
 
@@ -519,14 +562,6 @@
             document.getElementById('playAgainBtn').addEventListener('click', resetGame);
         };
 
-        const updatePlayerList = (players) => {
-            const playersUl = document.getElementById('playersUl');
-            if (playersUl) {
-                playersUl.innerHTML = players.map(player => `<li class="text-gray-400">${player.name}</li>`).join('');
-                document.getElementById('playerList').classList.remove('hidden');
-            }
-        };
-
         // Function to create a room
         const createRoom = async () => {
             const nameInput = document.getElementById('playerNameInput');
@@ -536,20 +571,17 @@
             roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
 
             try {
-                const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+                const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
                 const playersRef = collection(roomRef, 'players');
 
-                const playerDoc = await addDoc(playersRef, {
+                await setDoc(roomRef, { status: 'waiting', players: [] });
+                
+                await addDoc(playersRef, {
                     name: playerName,
+                    id: userId,
                     status: 'online',
                     role: 'tripulante',
-                    votes: []
-                });
-                userId = playerDoc.id;
-
-                await setDoc(roomRef, {
-                    status: 'waiting',
-                    players: [userId]
+                    votes: 0
                 });
 
                 startRoomListener();
@@ -570,7 +602,7 @@
             roomId = idInput.value.toUpperCase();
 
             try {
-                const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+                const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
                 const roomSnap = await getDoc(roomRef);
 
                 if (!roomSnap.exists()) {
@@ -578,13 +610,23 @@
                 }
 
                 const playersRef = collection(roomRef, 'players');
-                const playerDoc = await addDoc(playersRef, {
+                const playersSnapshot = await getDocs(playersRef);
+                const existingPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const isAlreadyJoined = existingPlayers.some(player => player.id === userId);
+                if (isAlreadyJoined) {
+                    showMessage('Ya estás en esta sala.', 'error');
+                    startRoomListener();
+                    return;
+                }
+
+                await addDoc(playersRef, {
                     name: playerName,
+                    id: userId,
                     status: 'online',
                     role: 'tripulante',
-                    votes: []
+                    votes: 0
                 });
-                userId = playerDoc.id;
 
                 startRoomListener();
                 showMessage(`Te has unido a la sala ${roomId}.`, 'info');
@@ -596,8 +638,8 @@
 
         // Listen for real-time changes in the room
         const startRoomListener = () => {
-            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
-            onSnapshot(roomRef, (docSnap) => {
+            const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
+            onSnapshot(roomRef, async (docSnap) => {
                 if (!docSnap.exists()) {
                     showMessage('La sala fue eliminada.', 'info');
                     resetGame();
@@ -609,24 +651,27 @@
 
                 const playersRef = collection(roomRef, 'players');
                 onSnapshot(playersRef, (snapshot) => {
-                    const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const players = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                    const currentPlayer = players.find(p => p.id === userId);
+                    if (currentPlayer) {
+                        playerRole = currentPlayer.role;
+                    }
 
                     if (currentGameState === 'waiting') {
                         renderWaiting(roomId, players);
                     } else if (currentGameState === 'playing') {
-                        const currentPlayer = players.find(p => p.id === userId);
-                        playerRole = currentPlayer.role;
                         secretPlayerName = roomData.secretPlayerName;
                         isImpostor = (playerRole === 'impostor');
                         const secretPlayer = footballPlayers.find(p => p.name === secretPlayerName);
                         renderGameUI(players, isImpostor, secretPlayer);
                     } else if (currentGameState === 'voting') {
                         renderVoting(players);
+                        updateVoteCounts(players);
                     } else if (currentGameState === 'results') {
                         const winner = roomData.winner;
-                        const eliminatedPlayer = roomData.eliminatedPlayerName;
+                        const eliminatedPlayerName = roomData.eliminatedPlayerName;
                         const message = winner === 'tripulante'
-                            ? `¡La tripulación ha ganado! El impostor ha sido eliminado: ${eliminatedPlayer}.`
+                            ? `¡La tripulación ha ganado! El impostor ha sido eliminado: ${eliminatedPlayerName}.`
                             : `¡El impostor ha ganado! No lo adivinaron.`;
                         renderResult(message, winner === playerRole);
                     }
@@ -636,54 +681,78 @@
 
         // Start the game
         const startGame = async () => {
-            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+            const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
             const playersRef = collection(roomRef, 'players');
             const playersSnapshot = await getDocs(playersRef);
-            const players = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const players = playersSnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+
+            if (players.length < MIN_PLAYERS) {
+                showMessage(`Necesitas al menos ${MIN_PLAYERS} jugadores para empezar.`, 'error');
+                return;
+            }
 
             const impostor = players[Math.floor(Math.random() * players.length)];
             const secretPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
 
             await updateDoc(roomRef, {
                 status: 'playing',
-                impostorId: impostor.id,
-                secretPlayerName: secretPlayer.name,
-                secretPlayerImage: secretPlayer.img,
-                round: 1
+                secretPlayerName: secretPlayer.name
             });
 
             await Promise.all(players.map(player => {
-                const role = player.id === impostor.id ? 'impostor' : 'tripulante';
-                return updateDoc(doc(playersRef, player.id), { role: role });
+                const role = player.docId === impostor.docId ? 'impostor' : 'tripulante';
+                return updateDoc(doc(playersRef, player.docId), { role: role });
             }));
+        };
+        
+        // Start voting phase
+        const startVoting = async () => {
+            const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
+            await updateDoc(roomRef, { status: 'voting' });
         };
 
         // Submit a vote
         const submitVote = async (votedPlayerId) => {
-            const playersRef = collection(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId, 'players');
-            await updateDoc(doc(playersRef, userId), { votes: [votedPlayerId] });
+            if (hasVoted) {
+                showMessage('Ya has votado.', 'error');
+                return;
+            }
 
-            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
-            const playersSnapshot = await getDocs(playersRef);
-            const players = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const playersRef = collection(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId, 'players');
+            const playerDocRef = doc(playersRef, playersRef.docs.find(d => d.data().id === votedPlayerId).docId);
+            await updateDoc(playerDocRef, { votes: arrayUnion(userId) });
 
-            const totalVotes = players.filter(p => p.votes.length > 0).length;
+            hasVoted = true;
+            showMessage('Voto registrado.', 'info');
+        };
 
+        // Update vote counts
+        const updateVoteCounts = (players) => {
+            const voteCounts = {};
+            players.forEach(player => {
+                const votedFor = player.votes;
+                if (votedFor) {
+                    votedFor.forEach(votedId => {
+                        voteCounts[votedId] = (voteCounts[votedId] || 0) + 1;
+                    });
+                }
+            });
+
+            players.forEach(player => {
+                const voteCountElement = document.getElementById(`votes-${player.id}`);
+                if (voteCountElement) {
+                    voteCountElement.textContent = `Votos: ${voteCounts[player.id] || 0}`;
+                }
+            });
+
+            const totalVotes = players.reduce((sum, player) => sum + (player.votes ? player.votes.length : 0), 0);
             if (totalVotes === players.length) {
-                resolveVote(players);
+                resolveVote(players, voteCounts);
             }
         };
 
         // Resolve the vote and determine the winner
-        const resolveVote = async (players) => {
-            let voteCounts = {};
-            players.forEach(player => {
-                const votedFor = player.votes[0];
-                if (votedFor) {
-                    voteCounts[votedFor] = (voteCounts[votedFor] || 0) + 1;
-                }
-            });
-
+        const resolveVote = async (players, voteCounts) => {
             let maxVotes = 0;
             let tiedPlayers = [];
             for (const playerId in voteCounts) {
@@ -698,7 +767,7 @@
             const eliminatedPlayerId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
             const eliminatedPlayer = players.find(p => p.id === eliminatedPlayerId);
 
-            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+            const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
 
             if (eliminatedPlayer.role === 'impostor') {
                 await updateDoc(roomRef, {
@@ -708,15 +777,16 @@
                 });
             } else {
                 const remainingPlayers = players.filter(p => p.id !== eliminatedPlayerId);
-                const remainingTripulantes = remainingPlayers.filter(p => p.role === 'tripulante').length;
-                if (remainingTripulantes <= 1) {
+                const remainingImpostors = remainingPlayers.filter(p => p.role === 'impostor').length;
+
+                if (remainingImpostors === 0 || remainingImpostors >= remainingPlayers.length - remainingImpostors) {
                     await updateDoc(roomRef, {
                         status: 'results',
                         winner: 'impostor',
                         eliminatedPlayerName: eliminatedPlayer.name
                     });
                 } else {
-                    await Promise.all(players.map(player => updateDoc(doc(collection(roomRef, 'players'), player.id), { votes: [] })));
+                    await Promise.all(players.map(player => updateDoc(doc(collection(roomRef, 'players'), player.docId), { votes: [] })));
                     await updateDoc(roomRef, { status: 'playing' });
                 }
             }
@@ -737,7 +807,7 @@
         // Reset the game and clean up data
         const resetGame = async () => {
             if (roomId) {
-                const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+                const roomRef = doc(db, 'artifacts', __app_id, 'public', 'data', 'rooms', roomId);
                 const playersRef = collection(roomRef, 'players');
                 const playersSnapshot = await getDocs(playersRef);
                 playersSnapshot.forEach(async (playerDoc) => {
@@ -748,16 +818,18 @@
             userId = null;
             playerName = '';
             roomId = '';
-            impostorId = null;
             currentGameState = 'lobby';
             playerRole = 'tripulante';
             secretPlayerName = '';
             isImpostor = false;
+            hasVoted = false;
             renderLobby();
         };
 
         // Initialize the app on window load
         window.onload = async () => {
+            const userIdFromAuth = auth.currentUser?.uid || crypto.randomUUID();
+            userId = userIdFromAuth;
             await signInAnonymously(auth);
             renderLobby();
         };
