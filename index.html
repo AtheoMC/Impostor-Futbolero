@@ -3,90 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Impostor Futbolero</title>
+    <title>El Impostor Futbolero</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #121212;
-            color: #E0E0E0;
-        }
-        .container {
-            max-width: 90%;
-            margin: auto;
-            padding: 2rem 1rem;
-        }
-        .card {
-            background-color: #1E1E1E;
-            padding: 2rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
-        }
-        .input-field {
-            background-color: #2E2E2E;
-            border: 1px solid #444;
-            color: #E0E0E0;
-        }
-        .btn {
-            transition: transform 0.2s, background-color 0.2s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
-        }
-        .btn-primary {
-            background-color: #2196F3;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #1769aa;
-        }
-        .btn-secondary {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background-color: #388e3c;
-        }
-        .player-list-item {
-            background-color: #2e2e2e;
-        }
-        .impostor-text {
-            color: #f44336;
-        }
-        .crewmate-text {
-            color: #4CAF50;
-        }
-        .eliminated-player {
-            opacity: 0.5;
-            text-decoration: line-through;
-        }
-        .game-over-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 90%;
+            width: 450px;
+            background-color: #2a2a2a;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #ffffff;
+        }
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.75rem;
+            background-color: #333333;
+            border: 2px solid #444444;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5);
+        }
+        .btn {
+            width: 100%;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 1.125rem;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #10b981;
+        }
+        .btn-secondary:hover {
+            background-color: #059669;
+        }
+        .btn-join {
+            background-color: #4f46e5;
+        }
+        .btn-join:hover {
+            background-color: #4338ca;
+        }
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .form-row .form-input {
+            margin-bottom: 0;
+        }
+        .message-box {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            font-size: 0.875rem;
+            display: none;
+        }
+        .message-info {
+            background-color: #3b82f6;
+            color: #eff6ff;
+        }
+        .message-error {
+            background-color: #ef4444;
+            color: #fee2e2;
+        }
+        .players-list {
+            margin-top: 2rem;
+            text-align: left;
+        }
+        .players-list h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .player-card {
+            background-color: #333333;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .player-card img {
+            border-radius: 50%;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200">
+<body>
+    <div id="app" class="container">
+        <!-- The UI will be rendered here by JavaScript -->
+    </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Pega tu configuración de Firebase aquí.
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, updateDoc, arrayUnion, addDoc, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
             authDomain: "impostor-futbolero-online.firebaseapp.com",
@@ -96,669 +142,625 @@
             appId: "1:1067586840575:web:32889c085f7cf461bfa9ca",
             measurementId: "G-W7NY2T2V2C"
         };
-        
-        let app, db, auth;
-        let userId = null;
-        let gameId = null;
-        let isHost = false;
-        let gameState = { state: 'loading' };
-        let unsubscribeGame = null;
 
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+        let playerName = '';
+        let roomId = '';
+        let currentGameState = 'lobby';
+        let playerRole = 'tripulante';
+        let secretPlayerName = '';
+        let isImpostor = false;
+
+        const MIN_PLAYERS = 3;
+
+        // Lista de 150 jugadores de fútbol con un placeholder de imagen
         const footballPlayers = [
-            { name: "Lionel Messi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Messi" },
-            { name: "Cristiano Ronaldo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldo" },
-            { name: "Kylian Mbappé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mbappe" },
-            { name: "Erling Haaland", image: "https://placehold.co/400x400/2196F3/ffffff?text=Haaland" },
-            { name: "Neymar Jr.", image: "https://placehold.co/400x400/2196F3/ffffff?text=Neymar" },
-            { name: "Mohamed Salah", image: "https://placehold.co/400x400/2196F3/ffffff?text=Salah" },
-            { name: "Kevin De Bruyne", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Bruyne" },
-            { name: "Karim Benzema", image: "https://placehold.co/400x400/2196F3/ffffff?text=Benzema" },
-            { name: "Robert Lewandowski", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lewandowski" },
-            { name: "Harry Kane", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kane" },
-            { name: "Vinícius Júnior", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vinicius" },
-            { name: "Luka Modrić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Modric" },
-            { name: "Sadio Mané", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mane" },
-            { name: "Antoine Griezmann", image: "https://placehold.co/400x400/2196F3/ffffff?text=Griezmann" },
-            { name: "Jude Bellingham", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bellingham" },
-            { name: "Phil Foden", image: "https://placehold.co/400x400/2196F3/ffffff?text=Foden" },
-            { name: "Bukayo Saka", image: "https://placehold.co/400x400/2196F3/ffffff?text=Saka" },
-            { name: "Jamal Musiala", image: "https://placehold.co/400x400/2196F3/ffffff?text=Musiala" },
-            { name: "Federico Valverde", image: "https://placehold.co/400x400/2196F3/ffffff?text=Valverde" },
-            { name: "Casemiro", image: "https://placehold.co/400x400/2196F3/ffffff?text=Casemiro" },
-            { name: "Toni Kroos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kroos" },
-            { name: "Luka Modric", image: "https://placehold.co/400x400/2196F3/ffffff?text=Modric" },
-            { name: "Declan Rice", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rice" },
-            { name: "Virgil van Dijk", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Dijk" },
-            { name: "Rúben Dias", image: "https://placehold.co/400x400/2196F3/ffffff?text=Dias" },
-            { name: "Marquinhos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Marquinhos" },
-            { name: "Thibaut Courtois", image: "https://placehold.co/400x400/2196F3/ffffff?text=Courtois" },
-            { name: "Alisson Becker", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alisson" },
-            { name: "Manuel Neuer", image: "https://placehold.co/400x400/2196F3/ffffff?text=Neuer" },
-            { name: "Marc-André ter Stegen", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ter+Stegen" },
-            { name: "Ederson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ederson" },
-            { name: "Heung-min Son", image: "https://placehold.co/400x400/2196F3/ffffff?text=Son" },
-            { name: "Bruno Fernandes", image: "https://placehold.co/400x400/2196F3/ffffff?text=Fernandes" },
-            { name: "Bernardo Silva", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bernardo" },
-            { name: "Jack Grealish", image: "https://placehold.co/400x400/2196F3/ffffff?text=Grealish" },
-            { name: "Álvaro Morata", image: "https://placehold.co/400x400/2196F3/ffffff?text=Morata" },
-            { name: "Dusan Vlahovic", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vlahovic" },
-            { name: "Lautaro Martínez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lautaro" },
-            { name: "Romelu Lukaku", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lukaku" },
-            { name: "Victor Osimhen", image: "https://placehold.co/400x400/2196F3/ffffff?text=Osimhen" },
-            { name: "Rafael Leão", image: "https://placehold.co/400x400/2196F3/ffffff?text=Leao" },
-            { name: "Pedri", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pedri" },
-            { name: "Gavi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gavi" },
-            { name: "Frenkie de Jong", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Jong" },
-            { name: "Jules Koundé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kounde" },
-            { name: "Ronald Araújo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Araujo" },
-            { name: "Joshua Kimmich", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kimmich" },
-            { name: "Thomas Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Müller" },
-            { name: "Serge Gnabry", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gnabry" },
-            { name: "Leon Goretzka", image: "https://placehold.co/400x400/2196F3/ffffff?text=Goretzka" },
-            { name: "Kingsley Coman", image: "https://placehold.co/400x400/2196F3/ffffff?text=Coman" },
-            { name: "N'Golo Kanté", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kante" },
-            { name: "Paul Pogba", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pogba" },
-            { name: "Ousmane Dembélé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Dembélé" },
-            { name: "Olivier Giroud", image: "https://placehold.co/400x400/2196F3/ffffff?text=Giroud" },
-            { name: "Hugo Lloris", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lloris" },
-            { name: "Harry Maguire", image: "https://placehold.co/400x400/2196F3/ffffff?text=Maguire" },
-            { name: "Raheem Sterling", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sterling" },
-            { name: "Jadon Sancho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sancho" },
-            { name: "Kai Havertz", image: "https://placehold.co/400x400/2196F3/ffffff?text=Havertz" },
-            { name: "Kai Havertz", image: "https://placehold.co/400x400/2196F3/ffffff?text=Havertz" },
-            { name: "Mason Mount", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mount" },
-            { name: "Trent Alexander-Arnold", image: "https://placehold.co/400x400/2196F3/ffffff?text=TAA" },
-            { name: "Andrew Robertson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Robertson" },
-            { name: "Fabinho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Fabinho" },
-            { name: "Jorginho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Jorginho" },
-            { name: "Dusan Tadic", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tadic" },
-            { name: "João Félix", image: "https://placehold.co/400x400/2196F3/ffffff?text=Félix" },
-            { name: "Memphis Depay", image: "https://placehold.co/400x400/2196F3/ffffff?text=Depay" },
-            { name: "Frenkie de Jong", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Jong" },
-            { name: "Cody Gakpo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gakpo" },
-            { name: "Matthijs de Ligt", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Ligt" },
-            { name: "Achraf Hakimi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hakimi" },
-            { name: "Sadio Mané", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mané" },
-            { name: "Hakim Ziyech", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ziyech" },
-            { name: "Riyad Mahrez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mahrez" },
-            { name: "Edouard Mendy", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mendy" },
-            { name: "Patrik Schick", image: "https://placehold.co/400x400/2196F3/ffffff?text=Schick" },
-            { name: "Zlatan Ibrahimović", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ibrahimović" },
-            { name: "Ciro Immobile", image: "https://placehold.co/400x400/2196F3/ffffff?text=Immobile" },
-            { name: "Federico Chiesa", image: "https://placehold.co/400x400/2196F3/ffffff?text=Chiesa" },
-            { name: "Marco Verratti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Verratti" },
-            { name: "Gianluigi Donnarumma", image: "https://placehold.co/400x400/2196F3/ffffff?text=Donnarumma" },
-            { name: "Leonardo Bonucci", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bonucci" },
-            { name: "Giorgio Chiellini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Chiellini" },
-            { name: "Paulo Dybala", image: "https://placehold.co/400x400/2196F3/ffffff?text=Dybala" },
-            { name: "Ángel Di María", image: "https://placehold.co/400x400/2196F3/ffffff?text=Di+María" },
-            { name: "Lautaro Martínez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lautaro" },
-            { name: "Edinson Cavani", image: "https://placehold.co/400x400/2196F3/ffffff?text=Cavani" },
-            { name: "Luis Suárez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Suárez" },
-            { name: "Federico Valverde", image: "https://placehold.co/400x400/2196F3/ffffff?text=Valverde" },
-            { name: "James Rodríguez", image: "https://placehold.co/400x400/2196F3/ffffff?text=James" },
-            { name: "Radamel Falcao", image: "https://placehold.co/400x400/2196F3/ffffff?text=Falcao" },
-            { name: "Guillermo Ochoa", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ochoa" },
-            { name: "Raúl Jiménez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Jiménez" },
-            { name: "Hirving Lozano", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lozano" },
-            { name: "Christian Pulisic", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pulisic" },
-            { name: "Weston McKennie", image: "https://placehold.co/400x400/2196F3/ffffff?text=McKennie" },
-            { name: "Alphonso Davies", image: "https://placehold.co/400x400/2196F3/ffffff?text=Davies" },
-            { name: "Jonathan David", image: "https://placehold.co/400x400/2196F3/ffffff?text=David" },
-            { name: "Salomón Rondón", image: "https://placehold.co/400x400/F44336/ffffff?text=Rondón" },
-            { name: "Juan Arango", image: "https://placehold.co/400x400/F44336/ffffff?text=Arango" },
-            { name: "Yeferson Soteldo", image: "https://placehold.co/400x400/F44336/ffffff?text=Soteldo" },
-            { name: "Josef Martínez", image: "https://placehold.co/400x400/F44336/ffffff?text=Martínez" },
-            { name: "Giancarlo González", image: "https://placehold.co/400x400/F44336/ffffff?text=González" },
-            { name: "Claudio Bravo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bravo" },
-            { name: "Alexis Sánchez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sánchez" },
-            { name: "Arturo Vidal", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vidal" },
-            { name: "Gary Medel", image: "https://placehold.co/400x400/2196F3/ffffff?text=Medel" },
-            { name: "Sergio Agüero", image: "https://placehold.co/400x400/2196F3/ffffff?text=Agüero" },
-            { name: "Ángel Di María", image: "https://placehold.co/400x400/2196F3/ffffff?text=Di+María" },
-            { name: "Gerard Piqué", image: "https://placehold.co/400x400/2196F3/ffffff?text=Piqué" },
-            { name: "Sergio Busquets", image: "https://placehold.co/400x400/2196F3/ffffff?text=Busquets" },
-            { name: "Andrés Iniesta", image: "https://placehold.co/400x400/2196F3/ffffff?text=Iniesta" },
-            { name: "Xavi Hernández", image: "https://placehold.co/400x400/2196F3/ffffff?text=Xavi" },
-            { name: "Carles Puyol", image: "https://placehold.co/400x400/2196F3/ffffff?text=Puyol" },
-            { name: "Iker Casillas", image: "https://placehold.co/400x400/2196F3/ffffff?text=Casillas" },
-            { name: "Fernando Torres", image: "https://placehold.co/400x400/2196F3/ffffff?text=Torres" },
-            { name: "David Villa", image: "https://placehold.co/400x400/2196F3/ffffff?text=Villa" },
-            { name: "Xabi Alonso", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alonso" },
-            { name: "Raúl González", image: "https://placehold.co/400x400/2196F3/ffffff?text=Raúl" },
-            { name: "Sergio Ramos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ramos" },
-            { name: "Gareth Bale", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bale" },
-            { name: "Marcelo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Marcelo" },
-            { name: "Isco", image: "https://placehold.co/400x400/2196F3/ffffff?text=Isco" },
-            { name: "Marco Asensio", image: "https://placehold.co/400x400/2196F3/ffffff?text=Asensio" },
-            { name: "Eden Hazard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hazard" },
-            { name: "Dries Mertens", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mertens" },
-            { name: "Kevin De Bruyne", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Bruyne" },
-            { name: "Vincent Kompany", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kompany" },
-            { name: "Romelu Lukaku", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lukaku" },
-            { name: "Thibaut Courtois", image: "https://placehold.co/400x400/2196F3/ffffff?text=Courtois" },
-            { name: "Gianluigi Buffon", image: "https://placehold.co/400x400/2196F3/ffffff?text=Buffon" },
-            { name: "Andrea Pirlo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pirlo" },
-            { name: "Francesco Totti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Totti" },
-            { name: "Paolo Maldini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Maldini" },
-            { name: "Alessandro Del Piero", image: "https://placehold.co/400x400/2196F3/ffffff?text=Del+Piero" },
-            { name: "Kaká", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kaká" },
-            { name: "Rivaldo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rivaldo" },
-            { name: "Ronaldo Nazário", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldo" },
-            { name: "Garrincha", image: "https://placehold.co/400x400/2196F3/ffffff?text=Garrincha" },
-            { name: "Zico", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zico" },
-            { name: "Socrates", image: "https://placehold.co/400x400/2196F3/ffffff?text=Socrates" },
-            { name: "Roberto Carlos", image: "https://placehold.co/400x400/2196F3/ffffff?text=R.+Carlos" },
-            { name: "Ronaldinho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldinho" },
-            { name: "Frank Lampard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lampard" },
-            { name: "Steven Gerrard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gerrard" },
-            { name: "Wayne Rooney", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rooney" },
-            { name: "David Beckham", image: "https://placehold.co/400x400/2196F3/ffffff?text=Beckham" },
-            { name: "Paul Scholes", image: "https://placehold.co/400x400/2196F3/ffffff?text=Scholes" },
-            { name: "Bobby Charlton", image: "https://placehold.co/400x400/2196F3/ffffff?text=B.+Charlton" },
-            { name: "Thierry Henry", image: "https://placehold.co/400x400/2196F3/ffffff?text=Henry" },
-            { name: "Dennis Bergkamp", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bergkamp" },
-            { name: "Patrick Vieira", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vieira" },
-            { name: "Didier Drogba", image: "https://placehold.co/400x400/2196F3/ffffff?text=Drogba" },
-            { name: "Zinedine Zidane", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zidane" },
-            { name: "Michel Platini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Platini" },
-            { name: "Marco van Basten", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Basten" },
-            { name: "Johan Cruyff", image: "https://placehold.co/400x400/2196F3/ffffff?text=Cruyff" },
-            { name: "Franz Beckenbauer", image: "https://placehold.co/400x400/2196F3/ffffff?text=Beckenbauer" },
-            { name: "Gerd Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Müller" },
-            { name: "Diego Maradona", image: "https://placehold.co/400x400/2196F3/ffffff?text=Maradona" },
-            { name: "Pelé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pelé" },
-            { name: "Eusébio", image: "https://placehold.co/400x400/2196F3/ffffff?text=Eusébio" },
-            { name: "Ferenc Puskás", image: "https://placehold.co/400x400/2196F3/ffffff?text=Puskás" },
-            { name: "Alfredo Di Stéfano", image: "https://placehold.co/400x400/2196F3/ffffff?text=Di+Stéfano" },
-            { name: "Lev Yashin", image: "https://placehold.co/400x400/2196F3/ffffff?text=Yashin" },
-            { name: "George Best", image: "https://placehold.co/400x400/2196F3/ffffff?text=Best" },
-            { name: "Diego Forlán", image: "https://placehold.co/400x400/2196F3/ffffff?text=Forlán" },
-            { name: "Ivan Rakitić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rakitić" },
-            { name: "Mario Mandžukić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mandžukić" },
-            { name: "Arjen Robben", image: "https://placehold.co/400x400/2196F3/ffffff?text=Robben" },
-            { name: "Wesley Sneijder", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sneijder" },
-            { name: "Robin van Persie", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Persie" },
-            { name: "Gareth Bale", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bale" },
-            { name: "Ryan Giggs", image: "https://placehold.co/400x400/2196F3/ffffff?text=Giggs" },
-            { name: "Zlatan Ibrahimović", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ibrahimović" },
-            { name: "David Alaba", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alaba" },
-            { name: "Thomas Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Müller" },
-            { name: "Marco Reus", image: "https://placehold.co/400x400/2196F3/ffffff?text=Reus" },
-            { name: "Toni Kroos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kroos" },
-            { name: "Mesut Özil", image: "https://placehold.co/400x400/2196F3/ffffff?text=Özil" },
-            { name: "Miroslav Klose", image: "https://placehold.co/400x400/2196F3/ffffff?text=Klose" },
-            { name: "Lukas Podolski", image: "https://placehold.co/400x400/2196F3/ffffff?text=Podolski" },
-            { name: "Philipp Lahm", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lahm" },
-            { name: "Sergio Agüero", image: "https://placehold.co/400x400/2196F3/ffffff?text=Agüero" },
-            { name: "Alexis Sánchez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sánchez" },
-            { name: "Arturo Vidal", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vidal" },
-            { name: "James Rodríguez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rodríguez" },
-            { name: "Radamel Falcao", image: "https://placehold.co/400x400/2196F3/ffffff?text=Falcao" },
-            { name: "Luis Suárez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Suárez" },
-            { name: "Edinson Cavani", image: "https://placehold.co/400x400/2196F3/ffffff?text=Cavani" },
-            { name: "Carlos Tevez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tévez" },
-            { name: "Javier Zanetti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zanetti" },
-            { name: "Diego Simeone", image: "https://placehold.co/400x400/2196F3/ffffff?text=Simeone" },
-            { name: "Gabriel Batistuta", image: "https://placehold.co/400x400/2196F3/ffffff?text=Batistuta" },
-            { name: "Sergio Busquets", image: "https://placehold.co/400x400/2196F3/ffffff?text=Busquets" },
-            { name: "Thiago Alcántara", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alcántara" },
-            { name: "Álvaro Morata", image: "https://placehold.co/400x400/2196F3/ffffff?text=Morata" },
-            { name: "David de Gea", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Gea" },
-            { name: "Cesc Fàbregas", image: "https://placehold.co/400x400/2196F3/ffffff?text=Fàbregas" },
-            { name: "Fernando Hierro", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hierro" },
-            { name: "Raúl Albiol", image: "https://placehold.co/400x400/2196F3/ffffff?text=Albiol" },
-            { name: "José Mourinho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mourinho" },
-            { name: "Josep Guardiola", image: "https://placehold.co/400x400/2196F3/ffffff?text=Guardiola" },
-            { name: "Carlo Ancelotti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ancelotti" },
-            { name: "Arsène Wenger", image: "https://placehold.co/400x400/2196F3/ffffff?text=Wenger" },
-            { name: "Sir Alex Ferguson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ferguson" },
-            { name: "Jurgen Klopp", image: "https://placehold.co/400x400/2196F3/ffffff?text=Klopp" },
-            { name: "Mauricio Pochettino", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pochettino" },
-            { name: "Antonio Conte", image: "https://placehold.co/400x400/2196F3/ffffff?text=Conte" },
-            { name: "Luciano Spalletti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Spalletti" },
-            { name: "Simone Inzaghi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Inzaghi" },
-            { name: "Xavi Hernández", image: "https://placehold.co/400x400/2196F3/ffffff?text=Xavi" },
-            { name: "Diego Simeone", image: "https://placehold.co/400x400/2196F3/ffffff?text=Simeone" },
-            { name: "Lionel Scaloni", image: "https://placehold.co/400x400/2196F3/ffffff?text=Scaloni" },
-            { name: "Gareth Southgate", image: "https://placehold.co/400x400/2196F3/ffffff?text=Southgate" },
-            { name: "Joachim Löw", image: "https://placehold.co/400x400/2196F3/ffffff?text=Löw" },
-            { name: "Didier Deschamps", image: "https://placehold.co/400x400/2196F3/ffffff?text=Deschamps" },
-            { name: "Tite", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tite" },
-            { name: "Luis Enrique", image: "https://placehold.co/400x400/2196F3/ffffff?text=L.+Enrique" },
-            { name: "Pep Guardiola", image: "https://placehold.co/400x400/2196F3/ffffff?text=Guardiola" },
-            { name: "Jürgen Klopp", image: "https://placehold.co/400x400/2196F3/ffffff?text=Klopp" },
-            { name: "Thomas Tuchel", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tuchel" },
-            { name: "Erik ten Hag", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ten+Hag" },
-            { name: "Roberto Mancini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mancini" },
-            { name: "Rafa Benítez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Benítez" },
-            { name: "Maurizio Sarri", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sarri" },
-            { name: "Gennaro Gattuso", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gattuso" },
-            { name: "Frank Rijkaard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rijkaard" },
-            { name: "Carlo Mazzone", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mazzone" },
-            { name: "Louis van Gaal", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Gaal" },
-            { name: "Vicente del Bosque", image: "https://placehold.co/400x400/2196F3/ffffff?text=Del+Bosque" },
-            { name: "Fernando Santos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Santos" },
-            { name: "Marcello Lippi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lippi" },
-            { name: "Fabio Capello", image: "https://placehold.co/400x400/2196F3/ffffff?text=Capello" },
-            { name: "Giovanni Trapattoni", image: "https://placehold.co/400x400/2196F3/ffffff?text=Trapattoni" },
-            { name: "Sven-Göran Eriksson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Eriksson" },
-            { name: "Guus Hiddink", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hiddink" },
-            { name: "Dick Advocaat", image: "https://placehold.co/400x400/2196F3/ffffff?text=Advocaat" },
-            { name: "Fatih Terim", image: "https://placehold.co/400x400/2196F3/ffffff?text=Terim" },
-            { name: "Vahid Halilhodžić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Halilhodžić" },
-            { name: "Hansi Flick", image: "https://placehold.co/400x400/2196F3/ffffff?text=Flick" },
-            { name: "Julian Nagelsmann", image: "https://placehold.co/400x400/2196F3/ffffff?text=Nagelsmann" },
-            { name: "Brendan Rodgers", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rodgers" },
-            { name: "Unai Emery", image: "https://placehold.co/400x400/2196F3/ffffff?text=Emery" },
-            { name: "Steven Gerrard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gerrard" },
-            { name: "Wayne Rooney", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rooney" },
-            { name: "Andrea Pirlo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pirlo" },
-            { name: "Xabi Alonso", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alonso" },
-            { name: "Zinedine Zidane", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zidane" }
+            { name: "Lionel Messi", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Messi" },
+            { name: "Cristiano Ronaldo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ronaldo" },
+            { name: "Neymar Jr.", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Neymar" },
+            { name: "Kylian Mbappé", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Mbappe" },
+            { name: "Kevin De Bruyne", img: "https://placehold.co/200x200/4f46e5/ffffff?text=De+Bruyne" },
+            { name: "Erling Haaland", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Haaland" },
+            { name: "Robert Lewandowski", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lewandowski" },
+            { name: "Karim Benzema", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Benzema" },
+            { name: "Mohamed Salah", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Salah" },
+            { name: "Luka Modrić", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Modric" },
+            { name: "Harry Kane", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kane" },
+            { name: "Sadio Mané", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Mane" },
+            { name: "Virgil van Dijk", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Van+Dijk" },
+            { name: "Alisson Becker", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alisson" },
+            { name: "Thibaut Courtois", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Courtois" },
+            { name: "Manuel Neuer", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Neuer" },
+            { name: "Joshua Kimmich", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kimmich" },
+            { name: "Toni Kroos", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kroos" },
+            { name: "Vinícius Júnior", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vinicius" },
+            { name: "Pedri", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pedri" },
+            { name: "Gavi", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gavi" },
+            { name: "Ferran Torres", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Torres" },
+            { name: "João Félix", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Felix" },
+            { name: "Bernardo Silva", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Silva" },
+            { name: "Bruno Fernandes", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Fernandes" },
+            { name: "Phil Foden", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Foden" },
+            { name: "Jack Grealish", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Grealish" },
+            { name: "Marcus Rashford", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rashford" },
+            { name: "Jadon Sancho", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Sancho" },
+            { name: "Declan Rice", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rice" },
+            { name: "Jude Bellingham", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bellingham" },
+            { name: "Bukayo Saka", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Saka" },
+            { name: "Mason Mount", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Mount" },
+            { name: "Kai Havertz", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Havertz" },
+            { name: "Timo Werner", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Werner" },
+            { name: "Serge Gnabry", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gnabry" },
+            { name: "Leon Goretzka", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Goretzka" },
+            { name: "Ilkay Gündoğan", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gundogan" },
+            { name: "Leroy Sané", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Sane" },
+            { name: "Ansu Fati", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ansu+Fati" },
+            { name: "Ousmane Dembélé", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Dembele" },
+            { name: "Frenkie de Jong", img: "https://placehold.co/200x200/4f46e5/ffffff?text=De+Jong" },
+            { name: "Memphis Depay", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Depay" },
+            { name: "Julián Álvarez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alvarez" },
+            { name: "Lautaro Martínez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Martinez" },
+            { name: "Paulo Dybala", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Dybala" },
+            { name: "Ángel Di María", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Di+Maria" },
+            { name: "N'Golo Kanté", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kante" },
+            { name: "Paul Pogba", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pogba" },
+            { name: "Antoine Griezmann", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Griezmann" },
+            { name: "Olivier Giroud", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Giroud" },
+            { name: "Romelu Lukaku", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lukaku" },
+            { name: "Kevin Mbabu", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Mbabu" },
+            { name: "Federico Chiesa", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Chiesa" },
+            { name: "Marco Verratti", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Verratti" },
+            { name: "Jorginho", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Jorginho" },
+            { name: "Alessandro Bastoni", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bastoni" },
+            { name: "Gianluigi Donnarumma", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Donnarumma" },
+            { name: "Koke", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Koke" },
+            { name: "Álvaro Morata", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Morata" },
+            { name: "David de Gea", img: "https://placehold.co/200x200/4f46e5/ffffff?text=De+Gea" },
+            { name: "Jan Oblak", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Oblak" },
+            { name: "Ederson", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ederson" },
+            { name: "Casemiro", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Casemiro" },
+            { name: "Eder Militão", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Militao" },
+            { name: "Raphinha", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Raphinha" },
+            { name: "Gabriel Jesus", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Jesus" },
+            { name: "Richarlison", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Richarlison" },
+            { name: "Dani Alves", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alves" },
+            { name: "Marcelo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Marcelo" },
+            { name: "Sergio Ramos", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ramos" },
+            { name: "Gerard Piqué", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pique" },
+            { name: "Ronald Araújo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Araujo" },
+            { name: "Darwin Núñez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Nunez" },
+            { name: "Luis Díaz", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Diaz" },
+            { name: "Luis Suárez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Suarez" },
+            { name: "Edinson Cavani", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Cavani" },
+            { name: "Giorgio Chiellini", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Chiellini" },
+            { name: "Leonardo Bonucci", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bonucci" },
+            { name: "Lorenzo Insigne", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Insigne" },
+            { name: "Ciro Immobile", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Immobile" },
+            { name: "Dries Mertens", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Mertens" },
+            { name: "Eden Hazard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Hazard" },
+            { name: "Christian Eriksen", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Eriksen" },
+            { name: "Heung-min Son", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Son" },
+            { name: "Takefusa Kubo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kubo" },
+            { name: "Shinji Kagawa", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kagawa" },
+            { name: "Achraf Hakimi", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Hakimi" },
+            { name: "Zlatan Ibrahimović", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Zlatan" },
+            { name: "Gareth Bale", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bale" },
+            { name: "David Alaba", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alaba" },
+            { name: "Dušan Vlahović", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vlahovic" },
+            { name: "Kalidou Koulibaly", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Koulibaly" },
+            { name: "André Onana", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Onana" },
+            { name: "Salomón Rondón", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rondon" },
+            { name: "Juan Arango", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Arango" },
+            { name: "Yeferson Soteldo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Soteldo" },
+            { name: "Diego Maradona", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Maradona" },
+            { name: "Pelé", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pele" },
+            { name: "Alfredo Di Stéfano", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Di+Stefano" },
+            { name: "Johan Cruyff", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Cruyff" },
+            { name: "Franz Beckenbauer", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Beckenbauer" },
+            { name: "Marco van Basten", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Van+Basten" },
+            { name: "George Best", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Best" },
+            { name: "Michel Platini", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Platini" },
+            { name: "Zinedine Zidane", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Zidane" },
+            { name: "Ronaldo Nazário", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ronaldo" },
+            { name: "Ronaldinho", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ronaldinho" },
+            { name: "Kaká", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kaka" },
+            { name: "Thierry Henry", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Henry" },
+            { name: "Dennis Bergkamp", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bergkamp" },
+            { name: "Paolo Maldini", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Maldini" },
+            { name: "Roberto Baggio", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Baggio" },
+            { name: "Andrea Pirlo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pirlo" },
+            { name: "Iker Casillas", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Casillas" },
+            { name: "Xavi Hernández", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Xavi" },
+            { name: "Andrés Iniesta", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Iniesta" },
+            { name: "David Villa", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Villa" },
+            { name: "Fernando Torres", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Torres" },
+            { name: "Francesco Totti", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Totti" },
+            { name: "Gigi Buffon", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Buffon" },
+            { name: "Steven Gerrard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gerrard" },
+            { name: "Frank Lampard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lampard" },
+            { name: "Didier Drogba", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Drogba" },
+            { name: "Arjen Robben", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Robben" },
+            { name: "Wesley Sneijder", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Sneijder" },
+            { name: "Robin van Persie", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Van+Persie" },
+            { name: "Wayne Rooney", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rooney" },
+            { name: "Carlos Tevez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Tevez" },
+            { name: "Luis Figo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Figo" },
+            { name: "Raúl González", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Raul" },
+            { name: "Sergio Agüero", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Aguero" },
+            { name: "Diego Forlán", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Forlan" },
+            { name: "Alexis Sánchez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alexis" },
+            { name: "Arturo Vidal", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vidal" },
+            { name: "Claudio Bravo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bravo" },
+            { name: "James Rodríguez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=James" },
+            { name: "Radamel Falcao", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Falcao" },
+            { name: "Keylor Navas", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Navas" },
+            { name: "Hugo Lloris", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lloris" },
+            { name: "Raphaël Varane", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Varane" },
+            { name: "Mats Hummels", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Hummels" },
+            { name: "Manuel Neuer", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Neuer" },
+            { name: "Thomas Müller", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Muller" },
+            { name: "Marco Reus", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Reus" },
+            { name: "Mesut Özil", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ozil" },
+            { name: "Mario Götze", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gotze" },
+            { name: "Sami Khedira", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Khedira" },
+            { name: "Miroslav Klose", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Klose" },
+            { name: "Gigi Buffon", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Buffon" },
+            { name: "Andrea Barzagli", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Barzagli" },
+            { name: "Leonardo Bonucci", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bonucci" },
+            { name: "Giorgio Chiellini", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Chiellini" },
+            { name: "Dani Carvajal", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Carvajal" },
+            { name: "Jordi Alba", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alba" },
+            { name: "Dani Alves", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Alves" },
+            { name: "Marcelo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Marcelo" },
+            { name: "Nacho", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Nacho" },
+            { name: "Pepe", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pepe" },
+            { name: "Gabriel Heinze", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Heinze" },
+            { name: "Juan Román Riquelme", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Riquelme" },
+            { name: "Ariel Ortega", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ortega" },
+            { name: "Javier Saviola", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Saviola" },
+            { name: "Hernán Crespo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Crespo" },
+            { name: "Batistuta", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Batistuta" },
+            { name: "Claudio Caniggia", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Caniggia" },
+            { name: "Ronald Koeman", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Koeman" },
+            { name: "Ruud Gullit", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gullit" },
+            { name: "Frank Rijkaard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rijkaard" },
+            { name: "Dennis Bergkamp", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Bergkamp" },
+            { name: "Marc Overmars", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Overmars" },
+            { name: "Clarence Seedorf", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Seedorf" },
+            { name: "Edgar Davids", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Davids" },
+            { name: "Michael Owen", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Owen" },
+            { name: "Alan Shearer", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Shearer" },
+            { name: "Rio Ferdinand", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ferdinand" },
+            { name: "John Terry", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Terry" },
+            { name: "Ashley Cole", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Cole" },
+            { name: "Steven Gerrard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gerrard" },
+            { name: "Frank Lampard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lampard" },
+            { name: "Didier Drogba", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Drogba" },
+            { name: "Samuel Eto'o", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Etoo" },
+            { name: "Patrick Vieira", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vieira" },
+            { name: "Michael Ballack", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ballack" },
+            { name: "Philipp Lahm", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lahm" },
+            { name: "Miroslav Klose", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Klose" },
+            { name: "Lothar Matthäus", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Matthaus" },
+            { name: "Karl-Heinz Rummenigge", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rummenigge" },
+            { name: "Oliver Kahn", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kahn" },
+            { name: "Toni Kroos", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kroos" },
+            { name: "Luka Modrić", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Modric" },
+            { name: "Ivan Rakitić", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rakitic" },
+            { name: "Kevin De Bruyne", img: "https://placehold.co/200x200/4f46e5/ffffff?text=De+Bruyne" },
+            { name: "Thibaut Courtois", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Courtois" },
+            { name: "Eden Hazard", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Hazard" },
+            { name: "Romelu Lukaku", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lukaku" },
+            { name: "Jan Vertonghen", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vertonghen" },
+            { name: "Christian Eriksen", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Eriksen" },
+            { name: "Kasper Schmeichel", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Schmeichel" },
+            { name: "Peter Schmeichel", img: "https://placehold.co/200x200/4f46e5/ffffff?text=P+Schmeichel" },
+            { name: "Henrik Larsson", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Larsson" },
+            { name: "Anders Svensson", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Svensson" },
+            { name: "Sebastian Larsson", img: "https://placehold.co/200x200/4f46e5/ffffff?text=S+Larsson" },
+            { name: "Nani", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Nani" },
+            { name: "Ricardo Quaresma", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Quaresma" },
+            { name: "João Moutinho", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Moutinho" },
+            { name: "Pepe", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pepe" },
+            { name: "Renato Sanches", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Sanches" },
+            { name: "Luis Figo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Figo" },
+            { name: "Rui Costa", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rui+Costa" },
+            { name: "Ricardo Carvalho", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Carvalho" },
+            { name: "Deco", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Deco" },
+            { name: "Fabio Cannavaro", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Cannavaro" },
+            { name: "Alessandro Del Piero", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Del+Piero" },
+            { name: "Filippo Inzaghi", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Inzaghi" },
+            { name: "Andrea Pirlo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pirlo" },
+            { name: "Marco Materazzi", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Materazzi" },
+            { name: "Gennaro Gattuso", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Gattuso" },
+            { name: "Andrea Barzagli", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Barzagli" },
+            { name: "Daniele De Rossi", img: "https://placehold.co/200x200/4f46e5/ffffff?text=De+Rossi" },
+            { name: "Luca Toni", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Toni" },
+            { name: "Mario Balotelli", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Balotelli" },
+            { name: "Thiago Silva", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Silva" },
+            { name: "Neymar Jr.", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Neymar" },
+            { name: "Gabriel Martinelli", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Martinelli" },
+            { name: "Rodrygo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rodrygo" },
+            { name: "Alphonso Davies", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Davies" },
+            { name: "Christian Pulisic", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pulisic" },
+            { name: "Giovanni Reyna", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Reyna" },
+            { name: "Weston McKennie", img: "https://placehold.co/200x200/4f46e5/ffffff?text=McKennie" },
+            { name: "Hirving Lozano", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Lozano" },
+            { name: "Guillermo Ochoa", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ochoa" },
+            { name: "Raúl Jiménez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Jimenez" },
+            { name: "Alexis Vega", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vega" },
+            { name: "Keylor Navas", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Navas" },
+            { name: "Joel Campbell", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Campbell" },
+            { name: "Brian Ruiz", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Ruiz" },
+            { name: "Salomón Rondón", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Rondon" },
+            { name: "Juan Arango", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Arango" },
+            { name: "Yeferson Soteldo", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Soteldo" },
+            { name: "Jefferson Farfán", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Farfan" },
+            { name: "Paolo Guerrero", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Guerrero" },
+            { name: "Claudio Pizarro", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Pizarro" },
+            { name: "Arturo Vidal", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Vidal" },
+            { name: "Alexis Sánchez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Sanchez" },
+            { name: "Gary Medel", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Medel" },
+            { name: "James Rodríguez", img: "https://placehold.co/200x200/4f46e5/ffffff?text=James" },
+            { name: "Luis Díaz", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Diaz" },
+            { name: "Radamel Falcao", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Falcao" },
+            { name: "Alphonso Davies", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Davies" },
+            { name: "Jonathan David", img: "https://placehold.co/200x200/4f46e5/ffffff?text=David" },
+            { name: "Tajon Buchanan", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Buchanan" },
+            { name: "Cyle Larin", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Larin" },
+            { name: "Atiba Hutchinson", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Hutchinson" },
+            { name: "Stephen Eustaquio", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Eustaquio" },
+            { name: "Ismaël Koné", img: "https://placehold.co/200x200/4f46e5/ffffff?text=Kone" }
         ];
 
-        // UI elements
-        const loadingScreen = document.getElementById('loadingScreen');
-        const loginScreen = document.getElementById('loginScreen');
-        const lobbyScreen = document.getElementById('lobbyScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const gameOverScreen = document.getElementById('gameOverScreen');
-        const votingModal = document.getElementById('votingModal');
-
-        const playerNameInput = document.getElementById('playerNameInput');
-        const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomInput = document.getElementById('joinRoomInput');
-        const joinRoomBtn = document.getElementById('joinRoomBtn');
-        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-        const lobbyPlayersList = document.getElementById('lobbyPlayersList');
-        const gamePlayersList = document.getElementById('gamePlayersList');
-        const startGameBtn = document.getElementById('startGameBtn');
-        const roleCard = document.getElementById('roleCard');
-        const gameOverMessage = document.getElementById('gameOverMessage');
-        const newGameBtn = document.getElementById('newGameBtn');
-        const votingPlayersList = document.getElementById('votingPlayersList');
-
-        function showModal(message) {
-            const modal = document.createElement('div');
-            modal.className = 'game-over-modal';
-            modal.innerHTML = `
-                <div class="card bg-gray-800 text-white p-6 rounded-2xl text-center">
-                    <p class="text-xl font-semibold mb-4">${message}</p>
-                    <button id="modalCloseBtn" class="btn btn-primary px-4 py-2">OK</button>
+        // Renders the main lobby UI
+        const renderLobby = () => {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="message-box message-info" id="infoMessage"></div>
+                <div class="message-box message-error" id="errorMessage"></div>
+                <h1 class="title">Impostor Futbolero</h1>
+                <input type="text" id="playerNameInput" placeholder="Introduce tu nombre" class="form-input">
+                <button id="createRoomBtn" class="btn btn-primary">Crear Sala</button>
+                <div class="form-row mt-4">
+                    <input type="text" id="roomIdInput" placeholder="CÓDIGO DE SALA" class="form-input text-center uppercase">
+                    <button id="joinRoomBtn" class="btn btn-secondary">Unirse</button>
+                </div>
+                <div id="playerList" class="players-list hidden">
+                    <h2 class="text-xl font-semibold mt-6 mb-2">Jugadores en la sala:</h2>
+                    <ul id="playersUl" class="list-disc pl-5 text-gray-400"></ul>
                 </div>
             `;
-            document.body.appendChild(modal);
-            document.getElementById('modalCloseBtn').onclick = () => {
-                document.body.removeChild(modal);
-            };
-        }
+            document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+            document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
+        };
 
-        function initializeFirebase() {
-            try {
-                if (!firebaseConfig.projectId) {
-                    showModal("La configuración de Firebase está vacía. La partida no puede iniciar. Debes pegar tu configuración de Firebase en el código.");
-                    return;
-                }
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                signInAnonymously(auth).then(() => {
-                    userId = auth.currentUser.uid;
-                    showScreen(loginScreen);
-                }).catch(error => {
-                    console.error("Error al iniciar sesión anónimamente:", error);
-                    showModal("Error al conectar con la base de datos. Por favor, revisa tu configuración de Firebase.");
-                });
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                showModal("Error fatal al inicializar la aplicación. La partida no puede iniciar. Revisa la consola para más detalles.");
-            }
-        }
-
-        function showScreen(screen) {
-            loadingScreen.classList.add('hidden');
-            loginScreen.classList.add('hidden');
-            lobbyScreen.classList.add('hidden');
-            gameScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            votingModal.classList.add('hidden');
-            screen.classList.remove('hidden');
-        }
-
-        async function createRoom() {
-            const playerName = playerNameInput.value.trim();
-            if (!playerName) { showModal("Por favor, introduce tu nombre."); return; }
-            gameId = Math.random().toString(36).substring(2, 7).toUpperCase();
-            const gameDocRef = doc(db, `games`, gameId);
-            const playerInfo = { name: playerName, status: 'active', isHost: true, role: null };
-            const gameData = { state: 'lobby', hostId: userId, players: { [userId]: playerInfo }, chosenPlayer: null, chosenPlayerImage: null, impostorId: null, votes: {}, votedPlayers: [] };
-            try {
-                await setDoc(gameDocRef, gameData);
-                isHost = true;
-                listenToGameChanges();
-            } catch (e) { console.error("Error creating document: ", e); }
-        }
-
-        async function joinRoom() {
-            gameId = joinRoomInput.value.trim().toUpperCase();
-            const playerName = playerNameInput.value.trim();
-            if (!playerName) { showModal("Por favor, introduce tu nombre."); return; }
-            if (!gameId) { showModal("Por favor, introduce un código de sala."); return; }
-            const gameDocRef = doc(db, `games`, gameId);
-            const gameDoc = await getDoc(gameDocRef);
-            if (!gameDoc.exists() || gameDoc.data().state !== 'lobby') { showModal("Código de sala inválido o la partida ya ha comenzado."); return; }
-            const updates = {};
-            updates[`players.${userId}`] = { name: playerName, status: 'active', isHost: false, role: null };
-            await updateDoc(gameDocRef, updates);
-            isHost = false;
-            listenToGameChanges();
-        }
-
-        function listenToGameChanges() {
-            if (unsubscribeGame) { unsubscribeGame(); }
-            const gameDocRef = doc(db, `games`, gameId);
-            unsubscribeGame = onSnapshot(gameDocRef, (doc) => {
-                if (doc.exists()) { 
-                    const newGameState = doc.data();
-                    gameState = newGameState;
-                    updateUI();
-                } else { 
-                    showModal("La sala del juego no existe. Volviendo a la pantalla principal."); 
-                    setTimeout(() => location.reload(), 3000); 
-                }
-            }, (error) => {
-                console.error("Error listening to game state:", error);
-                showModal("Hubo un error al sincronizar con la partida. Por favor, intenta de nuevo.");
-            });
-        }
-
-        function updateUI() {
-            const myPlayer = gameState.players[userId];
-            // If my player is eliminated, just show the game screen but with eliminated text
-            if (myPlayer?.status === 'eliminated') {
-                showScreen(gameScreen);
-                document.getElementById('roleCard').innerHTML = `<h2 class="text-3xl font-bold text-red-500">¡Has sido eliminado!</h2><p class="text-lg">El jugador a adivinar era: ${gameState.chosenPlayer}</p><img src="${gameState.chosenPlayerImage}" alt="${gameState.chosenPlayer}" class="w-full max-w-sm rounded-xl mx-auto mt-4">`;
-                votingModal.classList.add('hidden');
-                return;
-            }
-
-            if (gameState.state === 'lobby') {
-                showScreen(lobbyScreen);
-                roomCodeDisplay.textContent = gameId;
-                renderPlayers(lobbyPlayersList, gameState.players, false);
-                const playerCount = Object.keys(gameState.players).length;
-                if (isHost) {
-                    startGameBtn.classList.remove('hidden');
-                    startGameBtn.disabled = playerCount < 3;
-                    startGameBtn.textContent = `Empezar Juego (${playerCount}/3+)`;
-                } else { startGameBtn.classList.add('hidden'); }
-            } else if (gameState.state === 'in-game') {
-                showScreen(gameScreen);
-                votingModal.classList.add('hidden');
-                renderGameUI();
-            } else if (gameState.state === 'voting') {
-                showScreen(gameScreen);
-                votingModal.classList.remove('hidden');
-                renderVotingUI();
-            } else if (gameState.state === 'game-over') {
-                showScreen(gameOverScreen);
-                const winnerText = gameState.impostorId ? (gameState.players[gameState.impostorId].status === 'eliminated' ? '¡La tripulación gana!' : '¡El impostor gana!') : 'El juego ha terminado.';
-                gameOverMessage.textContent = winnerText;
-                if (isHost) { newGameBtn.classList.remove('hidden'); } else { newGameBtn.classList.add('hidden'); }
-            }
-        }
-
-        function renderPlayers(listElement, playersData, isGameScreen) {
-            listElement.innerHTML = '';
-            for (const playerId in playersData) {
-                const player = playersData[playerId];
-                const li = document.createElement('li');
-                li.className = `player-list-item flex justify-between items-center p-3 rounded-xl mb-2`;
-                li.textContent = `${player.name}${player.isHost ? ' (Anfitrión)' : ''}`;
-                if (player.status === 'eliminated') { li.classList.add('eliminated-player'); }
-                listElement.appendChild(li);
-            }
-        }
-
-        async function startGame() {
-            if (!isHost || Object.keys(gameState.players).length < 3) return;
-            const playerIds = Object.keys(gameState.players);
-            const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
-            const chosenPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
-            
-            const updates = { state: 'in-game', impostorId: impostorId, chosenPlayer: chosenPlayer.name, chosenPlayerImage: chosenPlayer.image, votes: {}, votedPlayers: [] };
-            const updatedPlayers = {};
-            for (const playerId of playerIds) {
-                updatedPlayers[playerId] = { ...gameState.players[playerId], role: (playerId === impostorId) ? 'impostor' : 'crewmate' };
-            }
-            updates.players = updatedPlayers;
-            try { 
-                await updateDoc(doc(db, `games`, gameId), updates);
-                if(isHost) await updateDoc(doc(db, `games`, gameId), { state: 'voting' });
-            }
-            catch (e) { console.error("Error starting game: ", e); showModal("Error al iniciar el juego. Inténtalo de nuevo."); }
-        }
-
-        function renderGameUI() {
-            const myPlayer = gameState.players[userId];
-            const roleContainer = document.getElementById('roleCard');
-            roleContainer.innerHTML = '';
-            const h2 = document.createElement('h2');
-            h2.className = 'text-3xl font-bold mb-4 text-center';
-
-            if (myPlayer.role === 'impostor') {
-                h2.textContent = 'Eres el IMPOSTOR';
-                h2.className += ' impostor-text';
-                const impostorText = document.createElement('p');
-                impostorText.className = 'text-center text-lg';
-                impostorText.textContent = `Tu objetivo es no ser descubierto. Usa las preguntas para descubrir la identidad de la persona a la que imitas.`;
-                roleContainer.appendChild(h2);
-                roleContainer.appendChild(impostorText);
-            } else {
-                h2.textContent = 'Eres de la tripulación';
-                h2.className += ' crewmate-text';
-                const playerImage = document.createElement('img');
-                playerImage.src = gameState.chosenPlayerImage;
-                playerImage.alt = gameState.chosenPlayer;
-                playerImage.className = 'w-full max-w-sm rounded-xl mx-auto mb-4';
-                const playerName = document.createElement('p');
-                playerName.className = 'text-center text-2xl font-semibold';
-                playerName.textContent = `Jugador a adivinar: ${gameState.chosenPlayer}`;
-                roleContainer.appendChild(h2);
-                roleContainer.appendChild(playerImage);
-                roleContainer.appendChild(playerName);
-            }
-
-            renderPlayers(gamePlayersList, gameState.players, true);
-        }
-
-        function renderVotingUI() {
-            const activePlayers = Object.entries(gameState.players).filter(([id, player]) => player.status === 'active' && id !== userId);
-            const myPlayer = gameState.players[userId];
-
-            if (myPlayer.role === 'impostor' || gameState.votedPlayers.includes(userId)) {
-                document.getElementById('votingMessage').textContent = 'Esperando a que los demás voten...';
-                votingPlayersList.innerHTML = '';
-                return;
-            }
-
-            document.getElementById('votingMessage').textContent = '¿A quién quieres eliminar?';
-            votingPlayersList.innerHTML = '';
-            
-            activePlayers.forEach(([id, player]) => {
-                const li = document.createElement('li');
-                li.className = 'flex items-center justify-between p-3 mb-2 rounded-xl bg-gray-700 hover:bg-gray-600 cursor-pointer transition';
-                li.textContent = player.name;
-                li.onclick = () => vote(id);
-                votingPlayersList.appendChild(li);
-            });
-
-            const skipBtn = document.createElement('li');
-            skipBtn.className = 'flex items-center justify-center p-3 mt-4 rounded-xl bg-gray-500 hover:bg-gray-400 cursor-pointer transition font-bold';
-            skipBtn.textContent = 'Saltar Votación';
-            skipBtn.onclick = () => vote('skip');
-            votingPlayersList.appendChild(skipBtn);
-        }
-
-        async function vote(votedId) {
-            const gameDocRef = doc(db, `games`, gameId);
-            const updates = {
-                [`votes.${votedId}`]: (gameState.votes[votedId] || 0) + 1,
-                votedPlayers: [...gameState.votedPlayers, userId]
-            };
-            await updateDoc(gameDocRef, updates);
-
-            // Check if all active players have voted
-            const livingPlayers = Object.keys(gameState.players).filter(id => gameState.players[id].status === 'active');
-            if (gameState.votedPlayers.length + 1 >= livingPlayers.length) {
-                // Host handles vote counting and elimination
-                if(isHost) {
-                    await processVotes();
-                }
-            }
-        }
-
-        async function processVotes() {
-            const gameDocRef = doc(db, `games`, gameId);
-            const votes = gameState.votes;
-            let maxVotes = 0;
-            let eliminatedPlayerId = null;
-            let isTie = false;
-
-            for (const playerId in votes) {
-                if (votes[playerId] > maxVotes) {
-                    maxVotes = votes[playerId];
-                    eliminatedPlayerId = playerId;
-                    isTie = false;
-                } else if (votes[playerId] === maxVotes) {
-                    isTie = true;
-                }
-            }
-
-            const updates = { votes: {}, votedPlayers: [] };
-            if (eliminatedPlayerId && !isTie && eliminatedPlayerId !== 'skip') {
-                updates[`players.${eliminatedPlayerId}.status`] = 'eliminated';
-                await updateDoc(gameDocRef, updates);
-            } else {
-                await updateDoc(gameDocRef, updates);
-            }
-
-            checkGameEnd();
-        }
-
-        function checkGameEnd() {
-            const livingPlayers = Object.keys(gameState.players).filter(id => gameState.players[id].status === 'active');
-            const impostorIsEliminated = gameState.impostorId && gameState.players[gameState.impostorId].status === 'eliminated';
-            
-            if (impostorIsEliminated) {
-                endGame('crewmate-win');
-            } else if (livingPlayers.length <= 2) {
-                endGame('impostor-win');
-            } else {
-                updateDoc(doc(db, `games`, gameId), { state: 'voting' });
-            }
-        }
-        
-        async function endGame(winner) {
-            if (!isHost) return;
-            const gameDocRef = doc(db, `games`, gameId);
-            await updateDoc(gameDocRef, { 
-                state: 'game-over',
-                impostorId: winner === 'impostor-win' ? gameState.impostorId : null // Set impostorId for win/loss message
-            });
-        }
-
-        async function startNewGame() {
-            if (!isHost) return;
-            const gameDocRef = doc(db, `games`, gameId);
-            const playerIds = Object.keys(gameState.players);
-            const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
-            const chosenPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
-
-            const newPlayers = {};
-            for (const playerId of playerIds) {
-                 newPlayers[playerId] = { ...gameState.players[playerId], status: 'active', role: (playerId === impostorId) ? 'impostor' : 'crewmate' };
-            }
-
-            try {
-                await setDoc(gameDocRef, {
-                    state: 'voting', 
-                    hostId: userId,
-                    players: newPlayers,
-                    chosenPlayer: chosenPlayer.name, 
-                    chosenPlayerImage: chosenPlayer.image, 
-                    impostorId: impostorId,
-                    votes: {}, 
-                    votedPlayers: []
-                });
-            } catch (e) { console.error("Error creating new game: ", e); showModal("Error al crear una nueva partida."); }
-        }
-
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
-        createRoomBtn.addEventListener('click', createRoom);
-        joinRoomBtn.addEventListener('click', joinRoom);
-        startGameBtn.addEventListener('click', startGame);
-        newGameBtn.addEventListener('click', startNewGame);
-    </script>
-
-    <div id="loadingScreen" class="h-screen flex items-center justify-center">
-        <h1 class="text-3xl font-bold animate-pulse">Cargando...</h1>
-    </div>
-
-    <div id="loginScreen" class="hidden h-screen flex items-center justify-center">
-        <div class="container card text-center">
-            <h1 class="text-4xl font-bold mb-6">Impostor Futbolero</h1>
-            <input type="text" id="playerNameInput" placeholder="Introduce tu nombre" class="input-field w-full p-3 rounded-lg mb-4 text-center">
-            <div class="space-y-4 md:space-y-0 md:flex md:space-x-4">
-                <button id="createRoomBtn" class="btn btn-primary w-full md:w-1/2 p-3 rounded-lg font-semibold text-lg">Crear Sala</button>
-                <div class="w-full md:w-1/2 flex space-x-2">
-                    <input type="text" id="joinRoomInput" placeholder="Código de sala" class="input-field w-2/3 p-3 rounded-lg text-center uppercase">
-                    <button id="joinRoomBtn" class="btn btn-secondary w-1/3 p-3 rounded-lg font-semibold text-lg">Unirse</button>
+        // Renders the waiting room UI
+        const renderWaiting = (roomId, players) => {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <h1 class="title">Sala: ${roomId}</h1>
+                <p class="text-gray-400 mb-6">Esperando a más jugadores...</p>
+                <p class="text-sm text-gray-500 mb-6">Necesitas ${MIN_PLAYERS} jugadores para empezar.</p>
+                <div id="playerList" class="players-list">
+                    <h2 class="text-xl font-semibold mb-2">Jugadores en la sala:</h2>
+                    <ul id="playersUl" class="list-disc pl-5">
+                        ${players.map(player => `<li class="text-gray-400">${player.name}</li>`).join('')}
+                    </ul>
                 </div>
-            </div>
-        </div>
-    </div>
+                ${players.length >= MIN_PLAYERS ? `<button id="startGameBtn" class="btn btn-primary mt-6">Empezar Juego</button>` : `<p class="mt-6 text-gray-500">Esperando jugadores...</p>`}
+            `;
+            if (players.length >= MIN_PLAYERS) {
+                document.getElementById('startGameBtn').addEventListener('click', startGame);
+            }
+        };
 
-    <div id="lobbyScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <h2 class="text-3xl font-bold mb-4">Sala de Juego</h2>
-            <p class="text-xl mb-4">Código: <span id="roomCodeDisplay" class="font-bold text-yellow-400"></span></p>
-            <p class="text-lg mb-2">Jugadores:</p>
-            <ul id="lobbyPlayersList" class="mb-6 space-y-2"></ul>
-            <button id="startGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl hidden">Empezar Juego</button>
-            <p class="text-sm mt-4 text-gray-500">Comparte el código con tus amigos para que se unan.</p>
-        </div>
-    </div>
+        // Renders the game UI
+        const renderGameUI = (players, isImpostor, secretPlayer) => {
+            const app = document.getElementById('app');
+            let content = '';
 
-    <div id="gameScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <!-- Role Card (Impostor or Crewmate) -->
-            <div id="roleCard" class="role-card"></div>
-            <!-- Player List -->
-            <div class="mt-8 w-full">
-                <h3 class="text-2xl font-bold mb-4">Jugadores</h3>
-                <ul id="gamePlayersList" class="mb-6 space-y-2"></ul>
-            </div>
-        </div>
-    </div>
+            if (isImpostor) {
+                content = `
+                    <h1 class="title text-red-500">¡Eres el Impostor!</h1>
+                    <p class="text-lg text-gray-300 mb-4">Tu misión es no ser descubierto.</p>
+                    <p class="text-sm text-gray-500 mb-4">Usa tus preguntas para confundir a los tripulantes.</p>
+                `;
+            } else {
+                content = `
+                    <h1 class="title text-green-500">¡Eres Tripulante!</h1>
+                    <p class="text-lg text-gray-300 mb-4">El jugador es:</p>
+                    <div class="player-card">
+                        <img src="${secretPlayer.img}" alt="${secretPlayer.name}" class="w-32 h-32 object-cover">
+                        <h2 class="text-2xl font-bold mt-2">${secretPlayer.name}</h2>
+                    </div>
+                `;
+            }
+            app.innerHTML = content;
+        };
 
-    <!-- Voting Modal -->
-    <div id="votingModal" class="game-over-modal hidden">
-        <div class="container card text-center">
-            <h2 class="text-3xl font-bold mb-4">Votación</h2>
-            <p id="votingMessage" class="text-xl mb-4">¿A quién quieres eliminar?</p>
-            <ul id="votingPlayersList" class="mb-6 space-y-2"></ul>
-        </div>
-    </div>
+        // Renders the voting UI
+        const renderVoting = (players) => {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <h1 class="title">¡Hora de votar!</h1>
+                <p class="text-lg text-gray-300 mb-6">¿Quién es el impostor?</p>
+                <div class="grid grid-cols-2 gap-4">
+                    ${players.map(player => `
+                        <button data-player-id="${player.id}" class="btn bg-gray-600 hover:bg-gray-500">
+                            ${player.name}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            document.querySelectorAll('.btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const votedPlayerId = e.target.dataset.playerId;
+                    submitVote(votedPlayerId);
+                });
+            });
+        };
 
+        // Renders the final result UI
+        const renderResult = (message, isWinner) => {
+            const app = document.getElementById('app');
+            const messageClass = isWinner ? 'bg-green-600' : 'bg-red-600';
+            app.innerHTML = `
+                <div class="message-box ${messageClass} block">
+                    <h1 class="text-2xl font-bold">${isWinner ? '¡Victoria!' : '¡Derrota!'}</h1>
+                    <p class="mt-2 text-sm">${message}</p>
+                </div>
+                <button id="playAgainBtn" class="btn btn-primary mt-6">Jugar de nuevo</button>
+            `;
+            document.getElementById('playAgainBtn').addEventListener('click', resetGame);
+        };
 
-    <div id="gameOverScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <h2 id="gameOverMessage" class="text-4xl font-bold mb-4 text-center"></h2>
-            <button id="newGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl hidden">Volver a Jugar</button>
-        </div>
-    </div>
+        const updatePlayerList = (players) => {
+            const playersUl = document.getElementById('playersUl');
+            if (playersUl) {
+                playersUl.innerHTML = players.map(player => `<li class="text-gray-400">${player.name}</li>`).join('');
+                document.getElementById('playerList').classList.remove('hidden');
+            }
+        };
 
+        // Function to create a room
+        const createRoom = async () => {
+            const nameInput = document.getElementById('playerNameInput');
+            if (!nameInput.value) return showMessage('Por favor, introduce tu nombre.', 'error');
+
+            playerName = nameInput.value;
+            roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+            try {
+                const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+                const playersRef = collection(roomRef, 'players');
+
+                const playerDoc = await addDoc(playersRef, {
+                    name: playerName,
+                    status: 'online',
+                    role: 'tripulante',
+                    votes: []
+                });
+                userId = playerDoc.id;
+
+                await setDoc(roomRef, {
+                    status: 'waiting',
+                    players: [userId]
+                });
+
+                startRoomListener();
+                showMessage(`Sala creada. ID: ${roomId}`, 'info');
+            } catch (error) {
+                console.error("Error al crear la sala: ", error);
+                showMessage("Error al crear la sala. Intenta de nuevo.", 'error');
+            }
+        };
+
+        // Function to join a room
+        const joinRoom = async () => {
+            const nameInput = document.getElementById('playerNameInput');
+            const idInput = document.getElementById('roomIdInput');
+            if (!nameInput.value || !idInput.value) return showMessage('Por favor, introduce tu nombre y el ID de la sala.', 'error');
+
+            playerName = nameInput.value;
+            roomId = idInput.value.toUpperCase();
+
+            try {
+                const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+                const roomSnap = await getDoc(roomRef);
+
+                if (!roomSnap.exists()) {
+                    return showMessage('La sala no existe.', 'error');
+                }
+
+                const playersRef = collection(roomRef, 'players');
+                const playerDoc = await addDoc(playersRef, {
+                    name: playerName,
+                    status: 'online',
+                    role: 'tripulante',
+                    votes: []
+                });
+                userId = playerDoc.id;
+
+                startRoomListener();
+                showMessage(`Te has unido a la sala ${roomId}.`, 'info');
+            } catch (error) {
+                console.error("Error al unirse a la sala: ", error);
+                showMessage("Error al unirse a la sala. Intenta de nuevo.", 'error');
+            }
+        };
+
+        // Listen for real-time changes in the room
+        const startRoomListener = () => {
+            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+            onSnapshot(roomRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    showMessage('La sala fue eliminada.', 'info');
+                    resetGame();
+                    return renderLobby();
+                }
+
+                const roomData = docSnap.data();
+                currentGameState = roomData.status;
+
+                const playersRef = collection(roomRef, 'players');
+                onSnapshot(playersRef, (snapshot) => {
+                    const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    if (currentGameState === 'waiting') {
+                        renderWaiting(roomId, players);
+                    } else if (currentGameState === 'playing') {
+                        const currentPlayer = players.find(p => p.id === userId);
+                        playerRole = currentPlayer.role;
+                        secretPlayerName = roomData.secretPlayerName;
+                        isImpostor = (playerRole === 'impostor');
+                        const secretPlayer = footballPlayers.find(p => p.name === secretPlayerName);
+                        renderGameUI(players, isImpostor, secretPlayer);
+                    } else if (currentGameState === 'voting') {
+                        renderVoting(players);
+                    } else if (currentGameState === 'results') {
+                        const winner = roomData.winner;
+                        const eliminatedPlayer = roomData.eliminatedPlayerName;
+                        const message = winner === 'tripulante'
+                            ? `¡La tripulación ha ganado! El impostor ha sido eliminado: ${eliminatedPlayer}.`
+                            : `¡El impostor ha ganado! No lo adivinaron.`;
+                        renderResult(message, winner === playerRole);
+                    }
+                });
+            });
+        };
+
+        // Start the game
+        const startGame = async () => {
+            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+            const playersRef = collection(roomRef, 'players');
+            const playersSnapshot = await getDocs(playersRef);
+            const players = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const impostor = players[Math.floor(Math.random() * players.length)];
+            const secretPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
+
+            await updateDoc(roomRef, {
+                status: 'playing',
+                impostorId: impostor.id,
+                secretPlayerName: secretPlayer.name,
+                secretPlayerImage: secretPlayer.img,
+                round: 1
+            });
+
+            await Promise.all(players.map(player => {
+                const role = player.id === impostor.id ? 'impostor' : 'tripulante';
+                return updateDoc(doc(playersRef, player.id), { role: role });
+            }));
+        };
+
+        // Submit a vote
+        const submitVote = async (votedPlayerId) => {
+            const playersRef = collection(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId, 'players');
+            await updateDoc(doc(playersRef, userId), { votes: [votedPlayerId] });
+
+            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+            const playersSnapshot = await getDocs(playersRef);
+            const players = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const totalVotes = players.filter(p => p.votes.length > 0).length;
+
+            if (totalVotes === players.length) {
+                resolveVote(players);
+            }
+        };
+
+        // Resolve the vote and determine the winner
+        const resolveVote = async (players) => {
+            let voteCounts = {};
+            players.forEach(player => {
+                const votedFor = player.votes[0];
+                if (votedFor) {
+                    voteCounts[votedFor] = (voteCounts[votedFor] || 0) + 1;
+                }
+            });
+
+            let maxVotes = 0;
+            let tiedPlayers = [];
+            for (const playerId in voteCounts) {
+                if (voteCounts[playerId] > maxVotes) {
+                    maxVotes = voteCounts[playerId];
+                    tiedPlayers = [playerId];
+                } else if (voteCounts[playerId] === maxVotes) {
+                    tiedPlayers.push(playerId);
+                }
+            }
+
+            const eliminatedPlayerId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
+            const eliminatedPlayer = players.find(p => p.id === eliminatedPlayerId);
+
+            const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+
+            if (eliminatedPlayer.role === 'impostor') {
+                await updateDoc(roomRef, {
+                    status: 'results',
+                    winner: 'tripulante',
+                    eliminatedPlayerName: eliminatedPlayer.name
+                });
+            } else {
+                const remainingPlayers = players.filter(p => p.id !== eliminatedPlayerId);
+                const remainingTripulantes = remainingPlayers.filter(p => p.role === 'tripulante').length;
+                if (remainingTripulantes <= 1) {
+                    await updateDoc(roomRef, {
+                        status: 'results',
+                        winner: 'impostor',
+                        eliminatedPlayerName: eliminatedPlayer.name
+                    });
+                } else {
+                    await Promise.all(players.map(player => updateDoc(doc(collection(roomRef, 'players'), player.id), { votes: [] })));
+                    await updateDoc(roomRef, { status: 'playing' });
+                }
+            }
+        };
+
+        // Show a message to the user
+        const showMessage = (message, type) => {
+            const messageBox = document.getElementById(type === 'error' ? 'errorMessage' : 'infoMessage');
+            if (messageBox) {
+                messageBox.textContent = message;
+                messageBox.style.display = 'block';
+                setTimeout(() => {
+                    messageBox.style.display = 'none';
+                }, 5000);
+            }
+        };
+
+        // Reset the game and clean up data
+        const resetGame = async () => {
+            if (roomId) {
+                const roomRef = doc(db, 'artifacts', 'el_impostor_futbolero', 'public', 'data', 'rooms', roomId);
+                const playersRef = collection(roomRef, 'players');
+                const playersSnapshot = await getDocs(playersRef);
+                playersSnapshot.forEach(async (playerDoc) => {
+                    await deleteDoc(doc(playersRef, playerDoc.id));
+                });
+                await deleteDoc(roomRef);
+            }
+            userId = null;
+            playerName = '';
+            roomId = '';
+            impostorId = null;
+            currentGameState = 'lobby';
+            playerRole = 'tripulante';
+            secretPlayerName = '';
+            isImpostor = false;
+            renderLobby();
+        };
+
+        // Initialize the app on window load
+        window.onload = async () => {
+            await signInAnonymously(auth);
+            renderLobby();
+        };
+    </script>
 </body>
 </html>
