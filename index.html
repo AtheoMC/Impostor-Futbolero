@@ -86,8 +86,6 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // **PASO 4: PEGA TU CONFIGURACIÓN DE FIREBASE AQUÍ**
-        // Reemplaza los 'null' con la información que copiaste de Firebase.
         const firebaseConfig = {
             apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
             authDomain: "impostor-futbolero-online.firebaseapp.com",
@@ -98,7 +96,6 @@
             measurementId: "G-W7NY2T2V2C"
         };
         
-        // El resto del código no necesita cambios
         let app, db, auth;
         let userId = null;
         let gameId = null;
@@ -106,7 +103,6 @@
         let gameState = { state: 'loading' };
         let unsubscribeGame = null;
 
-        // Player data and game-related data
         const footballPlayers = [
             { name: "Lionel Messi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Messi" },
             { name: "Cristiano Ronaldo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldo" },
@@ -153,7 +149,6 @@
         const gameOverMessage = document.getElementById('gameOverMessage');
         const newGameBtn = document.getElementById('newGameBtn');
 
-        // Custom modal to replace alert()
         function showModal(message) {
             const modal = document.createElement('div');
             modal.className = 'game-over-modal';
@@ -413,3 +408,4 @@
 
 </body>
 </html>
+
