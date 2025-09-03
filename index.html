@@ -162,10 +162,16 @@
         function initializeFirebase() {
             try {
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                let firebaseConfig = {};
+                try {
+                    firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                } catch (e) {
+                    showModal("Error al cargar la configuración de Firebase. La partida no puede iniciar.");
+                    return;
+                }
 
                 if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config is empty. Cannot initialize.");
+                    showModal("La configuración de Firebase está vacía. La partida no puede iniciar.");
                     return;
                 }
 
@@ -191,9 +197,9 @@
                         }
                     }
                 });
-                console.log("Firebase initialized.");
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
+                showModal("Error fatal al inicializar la aplicación. La partida no puede iniciar.");
             }
         }
 
@@ -549,3 +555,4 @@
 
 </body>
 </html>
+
