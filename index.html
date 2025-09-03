@@ -85,7 +85,10 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        
+        // Pega tu configuración de Firebase aquí.
+        // Puedes encontrarla en la consola de Firebase en "Configuración del proyecto" -> "Tus apps".
+        // La estructura debe ser similar a la siguiente:
         const firebaseConfig = {
             apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
             authDomain: "impostor-futbolero-online.firebaseapp.com",
@@ -151,7 +154,7 @@
             { name: "Jules Koundé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kounde" },
             { name: "Ronald Araújo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Araujo" },
             { name: "Joshua Kimmich", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kimmich" },
-            { name: "Thomas Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Muller" },
+            { name: "Thomas Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Müller" },
             { name: "Serge Gnabry", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gnabry" },
             { name: "Leon Goretzka", image: "https://placehold.co/400x400/2196F3/ffffff?text=Goretzka" },
             { name: "Kingsley Coman", image: "https://placehold.co/400x400/2196F3/ffffff?text=Coman" },
@@ -402,6 +405,9 @@
                 signInAnonymously(auth).then(() => {
                     userId = auth.currentUser.uid;
                     showScreen(loginScreen);
+                }).catch(error => {
+                    console.error("Error al iniciar sesión anónimamente:", error);
+                    showModal("Error al conectar con la base de datos. Por favor, revisa tu configuración de Firebase.");
                 });
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
