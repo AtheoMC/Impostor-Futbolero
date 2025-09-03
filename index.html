@@ -87,8 +87,6 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Pega tu configuración de Firebase aquí.
-        // Puedes encontrarla en la consola de Firebase en "Configuración del proyecto" -> "Tus apps".
-        // La estructura debe ser similar a la siguiente:
         const firebaseConfig = {
             apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
             authDomain: "impostor-futbolero-online.firebaseapp.com",
@@ -366,6 +364,8 @@
         const lobbyScreen = document.getElementById('lobbyScreen');
         const gameScreen = document.getElementById('gameScreen');
         const gameOverScreen = document.getElementById('gameOverScreen');
+        const votingModal = document.getElementById('votingModal');
+
         const playerNameInput = document.getElementById('playerNameInput');
         const createRoomBtn = document.getElementById('createRoomBtn');
         const joinRoomInput = document.getElementById('joinRoomInput');
@@ -377,6 +377,7 @@
         const roleCard = document.getElementById('roleCard');
         const gameOverMessage = document.getElementById('gameOverMessage');
         const newGameBtn = document.getElementById('newGameBtn');
+        const votingPlayersList = document.getElementById('votingPlayersList');
 
         function showModal(message) {
             const modal = document.createElement('div');
@@ -421,6 +422,7 @@
             lobbyScreen.classList.add('hidden');
             gameScreen.classList.add('hidden');
             gameOverScreen.classList.add('hidden');
+            votingModal.classList.add('hidden');
             screen.classList.remove('hidden');
         }
 
@@ -430,7 +432,7 @@
             gameId = Math.random().toString(36).substring(2, 7).toUpperCase();
             const gameDocRef = doc(db, `games`, gameId);
             const playerInfo = { name: playerName, status: 'active', isHost: true, role: null };
-            const gameData = { state: 'lobby', hostId: userId, players: { [userId]: playerInfo }, chosenPlayer: null, chosenPlayerImage: null, impostorId: null };
+            const gameData = { state: 'lobby', hostId: userId, players: { [userId]: playerInfo }, chosenPlayer: null, chosenPlayerImage: null, impostorId: null, votes: {}, votedPlayers: [] };
             try {
                 await setDoc(gameDocRef, gameData);
                 isHost = true;
@@ -457,8 +459,14 @@
             if (unsubscribeGame) { unsubscribeGame(); }
             const gameDocRef = doc(db, `games`, gameId);
             unsubscribeGame = onSnapshot(gameDocRef, (doc) => {
-                if (doc.exists()) { gameState = doc.data(); updateUI(); }
-                else { showModal("La sala del juego no existe. Volviendo a la pantalla principal."); setTimeout(() => location.reload(), 3000); }
+                if (doc.exists()) { 
+                    const newGameState = doc.data();
+                    gameState = newGameState;
+                    updateUI();
+                } else { 
+                    showModal("La sala del juego no existe. Volviendo a la pantalla principal."); 
+                    setTimeout(() => location.reload(), 3000); 
+                }
             }, (error) => {
                 console.error("Error listening to game state:", error);
                 showModal("Hubo un error al sincronizar con la partida. Por favor, intenta de nuevo.");
@@ -466,6 +474,15 @@
         }
 
         function updateUI() {
+            const myPlayer = gameState.players[userId];
+            // If my player is eliminated, just show the game screen but with eliminated text
+            if (myPlayer?.status === 'eliminated') {
+                showScreen(gameScreen);
+                document.getElementById('roleCard').innerHTML = `<h2 class="text-3xl font-bold text-red-500">¡Has sido eliminado!</h2><p class="text-lg">El jugador a adivinar era: ${gameState.chosenPlayer}</p><img src="${gameState.chosenPlayerImage}" alt="${gameState.chosenPlayer}" class="w-full max-w-sm rounded-xl mx-auto mt-4">`;
+                votingModal.classList.add('hidden');
+                return;
+            }
+
             if (gameState.state === 'lobby') {
                 showScreen(lobbyScreen);
                 roomCodeDisplay.textContent = gameId;
@@ -476,8 +493,15 @@
                     startGameBtn.disabled = playerCount < 3;
                     startGameBtn.textContent = `Empezar Juego (${playerCount}/3+)`;
                 } else { startGameBtn.classList.add('hidden'); }
-            } else if (gameState.state === 'in-game') { showScreen(gameScreen); renderGameUI(); }
-            else if (gameState.state === 'game-over') {
+            } else if (gameState.state === 'in-game') {
+                showScreen(gameScreen);
+                votingModal.classList.add('hidden');
+                renderGameUI();
+            } else if (gameState.state === 'voting') {
+                showScreen(gameScreen);
+                votingModal.classList.remove('hidden');
+                renderVotingUI();
+            } else if (gameState.state === 'game-over') {
                 showScreen(gameOverScreen);
                 const winnerText = gameState.impostorId ? (gameState.players[gameState.impostorId].status === 'eliminated' ? '¡La tripulación gana!' : '¡El impostor gana!') : 'El juego ha terminado.';
                 gameOverMessage.textContent = winnerText;
@@ -493,13 +517,6 @@
                 li.className = `player-list-item flex justify-between items-center p-3 rounded-xl mb-2`;
                 li.textContent = `${player.name}${player.isHost ? ' (Anfitrión)' : ''}`;
                 if (player.status === 'eliminated') { li.classList.add('eliminated-player'); }
-                if (isGameScreen && isHost && player.status === 'active' && playerId !== userId) {
-                    const eliminateBtn = document.createElement('button');
-                    eliminateBtn.textContent = 'Eliminar';
-                    eliminateBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-lg';
-                    eliminateBtn.onclick = () => eliminatePlayer(playerId);
-                    li.appendChild(eliminateBtn);
-                }
                 listElement.appendChild(li);
             }
         }
@@ -509,13 +526,17 @@
             const playerIds = Object.keys(gameState.players);
             const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
             const chosenPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
-            const updates = { state: 'in-game', impostorId: impostorId, chosenPlayer: chosenPlayer.name, chosenPlayerImage: chosenPlayer.image };
+            
+            const updates = { state: 'in-game', impostorId: impostorId, chosenPlayer: chosenPlayer.name, chosenPlayerImage: chosenPlayer.image, votes: {}, votedPlayers: [] };
             const updatedPlayers = {};
             for (const playerId of playerIds) {
                 updatedPlayers[playerId] = { ...gameState.players[playerId], role: (playerId === impostorId) ? 'impostor' : 'crewmate' };
             }
             updates.players = updatedPlayers;
-            try { await updateDoc(doc(db, `games`, gameId), updates); }
+            try { 
+                await updateDoc(doc(db, `games`, gameId), updates);
+                if(isHost) await updateDoc(doc(db, `games`, gameId), { state: 'voting' });
+            }
             catch (e) { console.error("Error starting game: ", e); showModal("Error al iniciar el juego. Inténtalo de nuevo."); }
         }
 
@@ -524,7 +545,8 @@
             const roleContainer = document.getElementById('roleCard');
             roleContainer.innerHTML = '';
             const h2 = document.createElement('h2');
-            h2.className = 'text-3xl font-bold mb-4';
+            h2.className = 'text-3xl font-bold mb-4 text-center';
+
             if (myPlayer.role === 'impostor') {
                 h2.textContent = 'Eres el IMPOSTOR';
                 h2.className += ' impostor-text';
@@ -542,46 +564,134 @@
                 playerImage.className = 'w-full max-w-sm rounded-xl mx-auto mb-4';
                 const playerName = document.createElement('p');
                 playerName.className = 'text-center text-2xl font-semibold';
-                playerName.textContent = gameState.chosenPlayer;
+                playerName.textContent = `Jugador a adivinar: ${gameState.chosenPlayer}`;
                 roleContainer.appendChild(h2);
                 roleContainer.appendChild(playerImage);
                 roleContainer.appendChild(playerName);
             }
+
             renderPlayers(gamePlayersList, gameState.players, true);
         }
 
-        async function eliminatePlayer(playerIdToEliminate) {
-            if (!isHost) return;
+        function renderVotingUI() {
+            const activePlayers = Object.entries(gameState.players).filter(([id, player]) => player.status === 'active' && id !== userId);
+            const myPlayer = gameState.players[userId];
+
+            if (myPlayer.role === 'impostor' || gameState.votedPlayers.includes(userId)) {
+                document.getElementById('votingMessage').textContent = 'Esperando a que los demás voten...';
+                votingPlayersList.innerHTML = '';
+                return;
+            }
+
+            document.getElementById('votingMessage').textContent = '¿A quién quieres eliminar?';
+            votingPlayersList.innerHTML = '';
+            
+            activePlayers.forEach(([id, player]) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-3 mb-2 rounded-xl bg-gray-700 hover:bg-gray-600 cursor-pointer transition';
+                li.textContent = player.name;
+                li.onclick = () => vote(id);
+                votingPlayersList.appendChild(li);
+            });
+
+            const skipBtn = document.createElement('li');
+            skipBtn.className = 'flex items-center justify-center p-3 mt-4 rounded-xl bg-gray-500 hover:bg-gray-400 cursor-pointer transition font-bold';
+            skipBtn.textContent = 'Saltar Votación';
+            skipBtn.onclick = () => vote('skip');
+            votingPlayersList.appendChild(skipBtn);
+        }
+
+        async function vote(votedId) {
             const gameDocRef = doc(db, `games`, gameId);
-            const updates = {};
-            updates[`players.${playerIdToEliminate}.status`] = 'eliminated';
+            const updates = {
+                [`votes.${votedId}`]: (gameState.votes[votedId] || 0) + 1,
+                votedPlayers: [...gameState.votedPlayers, userId]
+            };
             await updateDoc(gameDocRef, updates);
+
+            // Check if all active players have voted
+            const livingPlayers = Object.keys(gameState.players).filter(id => gameState.players[id].status === 'active');
+            if (gameState.votedPlayers.length + 1 >= livingPlayers.length) {
+                // Host handles vote counting and elimination
+                if(isHost) {
+                    await processVotes();
+                }
+            }
+        }
+
+        async function processVotes() {
+            const gameDocRef = doc(db, `games`, gameId);
+            const votes = gameState.votes;
+            let maxVotes = 0;
+            let eliminatedPlayerId = null;
+            let isTie = false;
+
+            for (const playerId in votes) {
+                if (votes[playerId] > maxVotes) {
+                    maxVotes = votes[playerId];
+                    eliminatedPlayerId = playerId;
+                    isTie = false;
+                } else if (votes[playerId] === maxVotes) {
+                    isTie = true;
+                }
+            }
+
+            const updates = { votes: {}, votedPlayers: [] };
+            if (eliminatedPlayerId && !isTie && eliminatedPlayerId !== 'skip') {
+                updates[`players.${eliminatedPlayerId}.status`] = 'eliminated';
+                await updateDoc(gameDocRef, updates);
+            } else {
+                await updateDoc(gameDocRef, updates);
+            }
+
             checkGameEnd();
         }
 
         function checkGameEnd() {
             const livingPlayers = Object.keys(gameState.players).filter(id => gameState.players[id].status === 'active');
-            const impostorIsEliminated = gameState.players[gameState.impostorId].status === 'eliminated';
-            if (impostorIsEliminated) { endGame(); }
-            else if (livingPlayers.length <= 2) { endGame(); }
+            const impostorIsEliminated = gameState.impostorId && gameState.players[gameState.impostorId].status === 'eliminated';
+            
+            if (impostorIsEliminated) {
+                endGame('crewmate-win');
+            } else if (livingPlayers.length <= 2) {
+                endGame('impostor-win');
+            } else {
+                updateDoc(doc(db, `games`, gameId), { state: 'voting' });
+            }
         }
-
-        async function endGame() {
+        
+        async function endGame(winner) {
             if (!isHost) return;
             const gameDocRef = doc(db, `games`, gameId);
-            await updateDoc(gameDocRef, { state: 'game-over' });
+            await updateDoc(gameDocRef, { 
+                state: 'game-over',
+                impostorId: winner === 'impostor-win' ? gameState.impostorId : null // Set impostorId for win/loss message
+            });
         }
 
         async function startNewGame() {
             if (!isHost) return;
             const gameDocRef = doc(db, `games`, gameId);
+            const playerIds = Object.keys(gameState.players);
+            const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
+            const chosenPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
+
+            const newPlayers = {};
+            for (const playerId of playerIds) {
+                 newPlayers[playerId] = { ...gameState.players[playerId], status: 'active', role: (playerId === impostorId) ? 'impostor' : 'crewmate' };
+            }
+
             try {
                 await setDoc(gameDocRef, {
-                    state: 'lobby', hostId: userId,
-                    players: { [userId]: { name: gameState.players[userId].name, status: 'active', isHost: true, role: null } },
-                    chosenPlayer: null, chosenPlayerImage: null, impostorId: null
+                    state: 'voting', 
+                    hostId: userId,
+                    players: newPlayers,
+                    chosenPlayer: chosenPlayer.name, 
+                    chosenPlayerImage: chosenPlayer.image, 
+                    impostorId: impostorId,
+                    votes: {}, 
+                    votedPlayers: []
                 });
-                isHost = true;
             } catch (e) { console.error("Error creating new game: ", e); showModal("Error al crear una nueva partida."); }
         }
 
@@ -623,13 +733,25 @@
 
     <div id="gameScreen" class="hidden h-screen flex flex-col items-center justify-center">
         <div class="container card text-center">
+            <!-- Role Card (Impostor or Crewmate) -->
             <div id="roleCard" class="role-card"></div>
+            <!-- Player List -->
             <div class="mt-8 w-full">
                 <h3 class="text-2xl font-bold mb-4">Jugadores</h3>
                 <ul id="gamePlayersList" class="mb-6 space-y-2"></ul>
             </div>
         </div>
     </div>
+
+    <!-- Voting Modal -->
+    <div id="votingModal" class="game-over-modal hidden">
+        <div class="container card text-center">
+            <h2 class="text-3xl font-bold mb-4">Votación</h2>
+            <p id="votingMessage" class="text-xl mb-4">¿A quién quieres eliminar?</p>
+            <ul id="votingPlayersList" class="mb-6 space-y-2"></ul>
+        </div>
+    </div>
+
 
     <div id="gameOverScreen" class="hidden h-screen flex flex-col items-center justify-center">
         <div class="container card text-center">
