@@ -169,7 +169,7 @@
     <script type="module">
         // Importaciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -182,11 +182,20 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let myUserId = '';
+        let myUserId = crypto.randomUUID(); // Genera un ID de usuario inmediatamente
         let currentRoomCode = '';
         let roomDocRef = null;
         let unsubscribeFromRoom = null;
         let countdownInterval = null;
+
+        // Se inicia sesión anónimamente en segundo plano para las operaciones de la base de datos
+        // La UI ya no espera a que esto termine
+        signInAnonymously(auth).then(userCredential => {
+            console.log("Sesión de usuario anónimo iniciada con UID:", userCredential.user.uid);
+            myUserId = userCredential.user.uid;
+        }).catch(error => {
+            console.error("Error al iniciar sesión anónimamente:", error);
+        });
 
         // Lista de Futbolistas y sus fotos
         const futbolistas = [
@@ -272,21 +281,9 @@
             screen.classList.remove('hidden');
         }
 
-        // Manejar el estado de autenticación de forma segura
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                myUserId = user.uid;
-                console.log("Usuario autenticado:", myUserId);
-                switchScreen(loginScreen);
-            } else {
-                console.log("No hay usuario, intentando iniciar sesión anónimamente.");
-                // Intentar iniciar sesión de forma anónima si no hay usuario
-                try {
-                    await signInAnonymously(auth);
-                } catch (error) {
-                    console.error("Error al iniciar sesión anónimamente:", error);
-                }
-            }
+        // Mostrar la pantalla de inicio una vez que el DOM esté cargado
+        document.addEventListener('DOMContentLoaded', () => {
+            switchScreen(loginScreen);
         });
 
         // Función para generar un código de sala aleatorio
@@ -509,7 +506,7 @@
 
         // Lógica del temporizador
         function startCountdown(startTime) {
-            clearInterval(countdownInterval); // Limpiar cualquier temporizador anterior
+            clearInterval(countdownInterval); // Limpiar cualquier temporador anterior
             const countdownDuration = 10; // 10 segundos
             countdownInterval = setInterval(async () => {
                 const elapsedTime = (new Date().getTime() - startTime) / 1000;
