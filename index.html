@@ -104,27 +104,29 @@
         .player-normal {
             color: #4ade80; /* Verde para los jugadores normales */
         }
+        #authStatus {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 1rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
 
-    <!-- Pantalla de Carga -->
-    <div id="loadingScreen" class="h-screen flex items-center justify-center">
-        <h1 class="text-3xl font-bold animate-pulse">Cargando...</h1>
-    </div>
-
     <!-- Pantalla de Login -->
-    <div id="loginScreen" class="hidden h-screen flex items-center justify-center">
+    <div id="loginScreen" class="h-screen flex items-center justify-center">
         <div class="container card text-center">
             <h1 class="text-4xl font-bold mb-6">Impostor Futbolero</h1>
             <input type="text" id="playerNameInput" placeholder="Ingresa tu nombre" class="input-field w-full p-4 mb-4 rounded-lg">
             <div class="space-y-4">
-                <button id="createRoomBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl">Crear Sala</button>
+                <button id="createRoomBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl" disabled>Crear Sala</button>
                 <div class="flex items-center justify-center space-x-2">
                     <input type="text" id="roomCodeInput" placeholder="Código de Sala" class="input-field p-3 rounded-lg w-2/3">
-                    <button id="joinRoomBtn" class="btn btn-secondary w-1/3 p-3 rounded-lg font-semibold text-lg">Unirse</button>
+                    <button id="joinRoomBtn" class="btn btn-secondary w-1/3 p-3 rounded-lg font-semibold text-lg" disabled>Unirse</button>
                 </div>
             </div>
+            <div id="authStatus">Conectando con el servidor...</div>
         </div>
     </div>
 
@@ -228,10 +230,8 @@
             "Johan Cruyff": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Johan_Cruyff_1974b.JPG/800px-Johan_Cruyff_1974b.JPG",
             "Franz Beckenbauer": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Franz_Beckenbauer_1974.jpg",
             "Ronaldo Nazário": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Ronaldo_Naz%C3%A1rio_2018.jpg"
-            // Puedes añadir más futbolistas y sus URLs de fotos aquí
         };
 
-        // URLs de avatares para los jugadores
         const avatarUrls = [
             "https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png",
             "https://cdn.iconscout.com/icon/free/png-256/free-avatar-372-456324.png",
@@ -242,7 +242,6 @@
         ];
 
         // Elementos del DOM
-        const loadingScreen = document.getElementById('loadingScreen');
         const loginScreen = document.getElementById('loginScreen');
         const lobbyScreen = document.getElementById('lobbyScreen');
         const gameScreen = document.getElementById('gameScreen');
@@ -261,10 +260,16 @@
         const endGameBtn = document.getElementById('endGameBtn');
         const gameOverMessage = document.getElementById('gameOverMessage');
         const impostorReveal = document.getElementById('impostorReveal');
+        const authStatusDiv = document.getElementById('authStatus');
+
+        let myUserId = '';
+        let currentRoomCode = '';
+        let roomDocRef = null;
+        let unsubscribeFromRoom = null;
+        let countdownInterval = null;
 
         // Función para cambiar de pantalla
         function switchScreen(screen) {
-            loadingScreen.classList.add('hidden');
             loginScreen.classList.add('hidden');
             lobbyScreen.classList.add('hidden');
             gameScreen.classList.add('hidden');
@@ -272,48 +277,41 @@
             screen.classList.remove('hidden');
         }
 
-        // Mostrar la pantalla de inicio inmediatamente al cargar la página
-        document.addEventListener('DOMContentLoaded', () => {
-            switchScreen(loginScreen);
-        });
-
-        // Manejar el estado de autenticación de forma segura
+        // Manejar el estado de autenticación en segundo plano
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 myUserId = user.uid;
                 console.log("Usuario autenticado:", myUserId);
+                authStatusDiv.textContent = 'Conectado. Puedes crear o unirte a una sala.';
+                createRoomBtn.disabled = false;
+                joinRoomBtn.disabled = false;
             } else {
                 console.log("No hay usuario, intentando iniciar sesión anónimamente.");
-                // Intentar iniciar sesión de forma anónima si no hay usuario
                 signInAnonymously(auth).catch(error => {
                     console.error("Error al iniciar sesión anónimamente:", error);
+                    authStatusDiv.textContent = 'Error de conexión. Intenta recargar la página.';
                 });
             }
         });
 
-        // Función para generar un código de sala aleatorio
         function generateRoomCode() {
             return Math.random().toString(36).substring(2, 6).toUpperCase();
         }
 
-        // Función para obtener la URL de la foto del jugador (ahora usa avatares aleatorios)
         function getPlayerPhoto() {
             return avatarUrls[Math.floor(Math.random() * avatarUrls.length)];
         }
 
-        // Función para actualizar la lista de jugadores en la UI
         function updatePlayersList(players, listElement, impostorId = null) {
             listElement.innerHTML = '';
             players.forEach(player => {
                 const li = document.createElement('li');
                 li.className = 'player-item';
                 
-                // Añadir la imagen del jugador
                 const playerPhoto = document.createElement('img');
                 playerPhoto.className = 'player-photo';
                 playerPhoto.src = player.photoURL;
                 playerPhoto.onerror = function() {
-                    // Fallback si el avatar no carga
                     this.src = 'https://placehold.co/40x40/000000/FFFFFF?text=P';
                 };
                 
@@ -335,10 +333,9 @@
             });
         }
 
-        // Funcionalidad de crear sala
         createRoomBtn.addEventListener('click', async () => {
             if (!myUserId) {
-                console.error("No se ha podido autenticar. Por favor, espera a que la página se cargue completamente o recarga.");
+                console.error("Error: No se ha podido autenticar. Por favor, espera a que el estado cambie o recarga la página.");
                 return;
             }
             const myPlayerName = playerNameInput.value.trim();
@@ -352,7 +349,7 @@
                 id: myUserId,
                 name: myPlayerName,
                 isHost: true,
-                photoURL: getPlayerPhoto(), // Usar la nueva función para avatares
+                photoURL: getPlayerPhoto(),
             };
 
             const roomRef = doc(db, `artifacts/${appId}/public/data/rooms`, newRoomCode);
@@ -377,10 +374,9 @@
             }
         });
 
-        // Funcionalidad de unirse a sala
         joinRoomBtn.addEventListener('click', async () => {
             if (!myUserId) {
-                console.error("No se ha podido autenticar. Por favor, espera a que la página se cargue completamente o recarga.");
+                console.error("Error: No se ha podido autenticar. Por favor, espera a que el estado cambie o recarga la página.");
                 return;
             }
             const myPlayerName = playerNameInput.value.trim();
@@ -401,7 +397,7 @@
                         id: myUserId,
                         name: myPlayerName,
                         isHost: false,
-                        photoURL: getPlayerPhoto(), // Usar la nueva función para avatares
+                        photoURL: getPlayerPhoto(),
                     };
                     try {
                         await updateDoc(roomRef, {
@@ -424,7 +420,6 @@
             }
         });
 
-        // Suscribirse a los cambios en la sala
         function subscribeToRoom() {
             if (unsubscribeFromRoom) {
                 unsubscribeFromRoom();
@@ -432,7 +427,6 @@
             unsubscribeFromRoom = onSnapshot(roomDocRef, (doc) => {
                 if (!doc.exists()) {
                     console.log("La sala ha sido eliminada.");
-                    // Manejar la salida de la sala, por ejemplo, volver a la pantalla de inicio
                     switchScreen(loginScreen);
                     return;
                 }
@@ -443,14 +437,11 @@
                 const impostorId = roomData.impostorId;
                 const futbolista = roomData.futbolista;
 
-                // Actualizar la lista de jugadores en ambas pantallas (lobby y juego)
                 updatePlayersList(players, lobbyPlayersList);
                 updatePlayersList(players, gamePlayersList);
 
-                // Lógica de estado de la partida
                 switch (gameStatus) {
                     case 'lobby':
-                        // Ocultar el contador si está visible
                         countdownTimer.classList.add('hidden');
                         if (myUserId === hostId) {
                             startGameBtn.classList.remove('hidden');
@@ -460,11 +451,9 @@
                         switchScreen(lobbyScreen);
                         startGameBtn.classList.add('hidden');
                         countdownTimer.classList.remove('hidden');
-                        // Iniciar el temporizador si aún no ha comenzado
                         startCountdown(roomData.countdownStartTimestamp);
                         break;
                     case 'ingame':
-                        // Asegurarse de que el juego realmente comience
                         switchScreen(gameScreen);
                         const myPlayer = players.find(p => p.id === myUserId);
                         const myRole = myPlayer.isImpostor ? 'impostor' : 'normal';
@@ -480,7 +469,6 @@
             });
         }
 
-        // Iniciar el contador
         startGameBtn.addEventListener('click', async () => {
             await runTransaction(db, async (transaction) => {
                 const roomDoc = await transaction.get(roomDocRef);
@@ -495,7 +483,6 @@
                     return;
                 }
                 
-                // Asignar roles y un futbolista aleatorio de forma atómica
                 const shuffledPlayers = [...roomData.players].sort(() => 0.5 - Math.random());
                 const impostorIndex = Math.floor(Math.random() * shuffledPlayers.length);
                 const impostorId = shuffledPlayers[impostorIndex].id;
@@ -517,10 +504,9 @@
             });
         });
 
-        // Lógica del temporizador
         function startCountdown(startTime) {
-            clearInterval(countdownInterval); // Limpiar cualquier temporador anterior
-            const countdownDuration = 10; // 10 segundos
+            clearInterval(countdownInterval);
+            const countdownDuration = 10;
             countdownInterval = setInterval(async () => {
                 const elapsedTime = (new Date().getTime() - startTime) / 1000;
                 const remainingTime = Math.ceil(countdownDuration - elapsedTime);
@@ -534,8 +520,6 @@
                     await runTransaction(db, async (transaction) => {
                         const roomDoc = await transaction.get(roomDocRef);
                         const roomData = roomDoc.data();
-
-                        // Prevenir que múltiples clientes cambien el estado
                         if (roomData.gameStatus === 'countdown') {
                             transaction.update(roomDocRef, { gameStatus: 'ingame' });
                         }
@@ -544,9 +528,8 @@
             }, 1000);
         }
 
-        // Mostrar el rol del jugador y la imagen del futbolista si aplica
         function displayRole(role, futbolista) {
-            roleCard.innerHTML = ''; // Limpiar el contenido anterior
+            roleCard.innerHTML = '';
 
             const roleHeading = document.createElement('h3');
             roleHeading.className = 'text-3xl font-bold mb-2';
@@ -568,7 +551,6 @@
 
                 const futbolistaPhoto = document.createElement('img');
                 futbolistaPhoto.className = 'futbolista-photo';
-                // Obtener la URL de la foto del futbolista
                 const photoURL = fotosFutbolistas[futbolista] || 'https://placehold.co/150x150/000000/FFFFFF?text=FUTBOLISTA';
                 futbolistaPhoto.src = photoURL;
                 futbolistaPhoto.alt = `Foto de ${futbolista}`;
@@ -576,12 +558,11 @@
                 roleText.innerHTML = `El futbolista es: <span class="font-bold text-yellow-400">${futbolista}</span>. Tu objetivo es identificar al impostor. Habla sobre el futbolista para descubrir quién no sabe de qué hablas.`;
 
                 roleCard.appendChild(roleHeading);
-                roleCard.appendChild(futbolistaPhoto); // Añadir la imagen
+                roleCard.appendChild(futbolistaPhoto);
                 roleCard.appendChild(roleText);
             }
         }
         
-        // Lógica de fin de partida (ejemplo)
         endGameBtn.addEventListener('click', async () => {
             const roomData = (await getDoc(roomDocRef)).data();
             if (myUserId === roomData.hostId) {
@@ -601,7 +582,7 @@
                     id: p.id, 
                     name: p.name, 
                     isHost: p.isHost,
-                    photoURL: getPlayerPhoto(), // Usar la nueva función para avatares
+                    photoURL: getPlayerPhoto(),
                     isImpostor: false,
                 }));
 
