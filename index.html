@@ -21,13 +21,13 @@
         
         // Configuración de Firebase - Utiliza la configuración proporcionada por el usuario
         const firebaseConfig = {
-            apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
-            authDomain: "impostor-futbolero-online.firebaseapp.com",
-            projectId: "impostor-futbolero-online",
-            storageBucket: "impostor-futbolero-online.firebasestorage.app",
-            messagingSenderId: "1067586840575",
-            appId: "1:1067586840575:web:32889c085f7cf461bfa9ca",
-            measurementId: "G-W7NY2T2V2C"
+            apiKey: "AIzaSyDOlq20cY--SAupjY3DG2yPRfjJ0u2KIC8",
+            authDomain: "impostor-futbolero.firebaseapp.com",
+            projectId: "impostor-futbolero",
+            storageBucket: "impostor-futbolero.firebasestorage.app",
+            messagingSenderId: "367880301498",
+            appId: "1:367880301498:web:5bd06e02107893da5f8b83",
+            measurementId: "G-QC9KW21MEL"
         };
         
         // --- Lista de Futbolistas (Top 100 y Venezolanos) ---
@@ -251,7 +251,7 @@
                         assignAndShowRole(roomData);
                     } else if (roomData.status === 'voting') {
                         showVotingScreen(roomData);
-                        checkMajorityVote(roomData); // Nueva lógica para verificar la mayoría
+                        checkMajorityVote(roomData); // Reactivado para verificar automáticamente
                     } else if (roomData.status === 'game_over') {
                         showGameOver(roomData);
                     }
@@ -306,8 +306,8 @@
                 const players = [...roomData.players];
                 const totalPlayers = players.length;
                 let impostorCount = 1;
-                // 50% de probabilidad de tener 2 impostores si hay más de 6 jugadores
-                if (totalPlayers > 6 && Math.random() < 0.5) {
+                // 50% de probabilidad de tener 2 impostores si hay más de 5 jugadores
+                if (totalPlayers > 5 && Math.random() < 0.5) {
                     impostorCount = 2;
                 }
 
@@ -404,8 +404,12 @@
                 if (!player.isEliminated) {
                     const li = document.createElement('li');
                     li.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'bg-gray-700', 'rounded-lg', 'text-lg');
+                    
+                    // Contar votos para este jugador
+                    const voteCount = Object.values(roomData.votes || {}).filter(vote => vote === player.userId).length;
+                    
                     li.innerHTML = `
-                        <span class="text-white">${player.name}</span>
+                        <span class="text-white">${player.name} (${voteCount} votos)</span>
                         <button class="vote-btn btn btn-primary p-2 rounded-lg font-semibold text-sm ${hasVoted ? 'bg-gray-500 cursor-not-allowed' : ''}" data-player-id="${player.userId}" ${hasVoted ? 'disabled' : ''}>Votar</button>
                     `;
                     votingPlayersList.appendChild(li);
@@ -414,19 +418,22 @@
             
             // Añadir event listeners para los botones de voto
             setTimeout(() => {
-                document.querySelectorAll('.vote-btn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
+                document.querySelectorAll(".vote-btn").forEach(btn => {
+                    btn.addEventListener("click", async (e) => {
                         if (hasVoted) return;
                         
-                        const votedPlayerId = e.target.getAttribute('data-player-id');
+                        const votedPlayerId = e.target.getAttribute("data-player-id");
                         await vote(votedPlayerId);
                         
-                        document.querySelectorAll('.vote-btn').forEach(b => {
+                        document.querySelectorAll(".vote-btn").forEach(b => {
                             b.disabled = true;
-                            b.classList.add('bg-gray-500', 'cursor-not-allowed');
+                            b.classList.add("bg-gray-500", "cursor-not-allowed");
                         });
                         showMessage("Tu voto ha sido registrado.");
                     });
+                });
+                document.getElementById("exitVotingBtn").addEventListener("click", () => {
+                    showScreen("gameScreen");
                 });
             }, 100);
         }
@@ -444,11 +451,19 @@
             });
         }
 
-        // Nueva función para verificar la mayoría de votos
+        // Nueva función para verificar la mayoría de votos automáticamente
         async function checkMajorityVote(roomData) {
             const votes = roomData.votes || {};
             const activePlayers = roomData.players.filter(p => !p.isEliminated);
             const numVoters = activePlayers.length;
+            
+            // Contar cuántos jugadores han votado
+            const numVotes = Object.keys(votes).length;
+            
+            // Solo procesar si todos han votado
+            if (numVotes < numVoters) {
+                return;
+            }
             
             const voteCounts = {};
             for (const voterId in votes) {
@@ -456,14 +471,34 @@
                 voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] || 0) + 1;
             }
 
+            // Encontrar el jugador con más votos
+            let maxVotes = 0;
+            let eliminatedPlayerId = null;
+            
             for (const playerId in voteCounts) {
-                if (voteCounts[playerId] > numVoters / 2) {
-                    // Mayoría de votos alcanzada, procesar la eliminación
-                    const eliminatedPlayer = roomData.players.find(p => p.userId === playerId);
-                    if (eliminatedPlayer) {
-                        await eliminateAndCheckWin(eliminatedPlayer.userId, roomData.players);
-                    }
-                    break;
+                if (voteCounts[playerId] > maxVotes) {
+                    maxVotes = voteCounts[playerId];
+                    eliminatedPlayerId = playerId;
+                }
+            }
+            
+            // Si hay empate, no eliminar a nadie
+            const playersWithMaxVotes = Object.keys(voteCounts).filter(id => voteCounts[id] === maxVotes);
+            if (playersWithMaxVotes.length > 1) {
+                // Empate, reiniciar votación
+                await setDoc(roomDocRef, { 
+                    status: 'in_game',
+                    votes: {}
+                }, { merge: true });
+                showMessage("Hubo un empate en la votación. Nadie fue eliminado.");
+                return;
+            }
+            
+            // Eliminar al jugador con más votos
+            if (eliminatedPlayerId && maxVotes > 0) {
+                const eliminatedPlayer = roomData.players.find(p => p.userId === eliminatedPlayerId);
+                if (eliminatedPlayer) {
+                    await eliminateAndCheckWin(eliminatedPlayer.userId, roomData.players);
                 }
             }
         }
@@ -557,9 +592,11 @@
         // Reiniciar el juego a la pantalla del lobby
         async function resetGameToLobby(roomData) {
             await setDoc(roomDocRef, {
+                host: roomData.host, // Mantener el host original
                 players: roomData.players.map(p => ({ userId: p.userId, name: p.name, isEliminated: false })),
                 status: 'lobby',
-                votes: {}
+                votes: {},
+                createdAt: roomData.createdAt || new Date()
             });
         }
         
@@ -689,6 +726,7 @@
             <h2 class="text-3xl font-bold mb-4">¡A Votar!</h2>
             <p class="text-lg mb-2 text-gray-400">Vota para eliminar a un sospechoso. El jugador con la mayoría de votos será expulsado de la partida.</p>
             <ul id="votingPlayersList" class="mb-6 space-y-2"></ul>
+            <button id="exitVotingBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl mt-4">Salir de la votación</button>
         </div>
     </div>
 
