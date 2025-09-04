@@ -556,11 +556,38 @@
 
         // Reiniciar el juego a la pantalla del lobby
         async function resetGameToLobby(roomData) {
-            await setDoc(roomDocRef, {
-                players: roomData.players.map(p => ({ userId: p.userId, name: p.name, isEliminated: false })),
-                status: 'lobby',
-                votes: {}
-            });
+            // New logic to reset game using a transaction
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomRef = doc(db, "artifacts", appId, "public", "data", "rooms", currentRoomId);
+                    const roomDoc = await transaction.get(roomRef);
+        
+                    if (!roomDoc.exists()) {
+                        throw "Document does not exist!";
+                    }
+        
+                    const players = roomDoc.data().players;
+                    const updatedPlayers = players.map(p => ({
+                        userId: p.userId,
+                        name: p.name,
+                        isEliminated: false
+                    }));
+        
+                    const newRoomData = {
+                        players: updatedPlayers,
+                        status: 'lobby',
+                        votes: {},
+                        futbolista: null,
+                        winner: null
+                    };
+                    transaction.update(roomRef, newRoomData);
+                });
+                console.log("Game successfully reset via transaction!");
+                hideAllScreens();
+                document.getElementById('roomLobbyScreen').classList.remove('hidden');
+            } catch (error) {
+                console.error("Transaction failed: ", error);
+            }
         }
         
     </script>
@@ -703,7 +730,6 @@
         </div>
     </div>
 
-    <!-- Mensaje temporal sin modal -->
     <div id="messageModal" class="hidden">
         <p id="messageText"></p>
     </div>
