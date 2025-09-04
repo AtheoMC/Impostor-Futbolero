@@ -382,8 +382,8 @@
         // Evento para llamar a la votación
         const callVoteBtn = document.getElementById('callVoteBtn');
         if (callVoteBtn) {
-            callVoteBtn.addEventListener("click", async () => {
-                showScreen("votingScreen");
+            callVoteBtn.addEventListener('click', async () => {
+                await setDoc(roomDocRef, { status: 'voting' }, { merge: true });
             });
         }
 
@@ -430,9 +430,12 @@
                             b.classList.add("bg-gray-500", "cursor-not-allowed");
                         });
                         showMessage("Tu voto ha sido registrado.");
-                       document.getElementById("exitVotingBtn").addEventListener("click", () => {
-                    showScreen("gameScreen");
+                    });
                 });
+                document.getElementById("exitVotingBtn").addEventListener("click", () => {
+                    votingScreen.classList.add("hidden"); // Simplemente oculta la pantalla de votación
+                });
+            }, 100);
         }
         
         // Función para registrar un voto
