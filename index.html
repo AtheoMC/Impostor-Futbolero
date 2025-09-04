@@ -34,6 +34,7 @@
             console.log("Firebase inicializado con éxito.");
         } catch (error) {
             console.error("Error al inicializar Firebase:", error);
+            // Ya no muestra el modal de error al inicio
         }
 
         const roomsCollectionName = 'rooms';
@@ -58,13 +59,7 @@
         const gameOverMessage = document.getElementById('gameOverMessage');
         const finalPlayersList = document.getElementById('finalPlayersList');
         const userIdDisplay = document.getElementById('userIdDisplay');
-        const modal = document.getElementById('modal');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalCloseBtn = document.getElementById('modalCloseBtn');
-        const callVoteBtn = document.getElementById('callVoteBtn');
-        const gamePlayersList = document.getElementById('gamePlayersList');
 
-        
         let currentRoomId = null;
         let userRole = null;
         let hasVoted = false;
@@ -75,17 +70,6 @@
             document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
         }
-
-        // Función para mostrar un mensaje modal
-        function showModal(message) {
-            modalMessage.textContent = message;
-            modal.classList.remove('hidden');
-        }
-        
-        // Manejador de clic para cerrar el modal
-        modalCloseBtn.addEventListener('click', () => {
-            modal.classList.add('hidden');
-        });
 
         // --- Lógica de Autenticación y Carga ---
         onAuthStateChanged(auth, async (user) => {
@@ -108,7 +92,8 @@
                     }
                 } catch (error) {
                     console.error("Error en la autenticación:", error);
-                    showModal("No se pudo iniciar sesión. Por favor, recarga la página.");
+                    // Ya no se usa el modal, solo se registra el error
+                    showScreen('homeScreen');
                 }
             }
         });
@@ -117,7 +102,7 @@
         createRoomBtn.addEventListener('click', async () => {
             userName = userNameInput.value.trim();
             if (!userName) {
-                showModal("Por favor, ingresa un nombre de usuario.");
+                console.error("Por favor, ingresa un nombre de usuario.");
                 return;
             }
             localStorage.setItem('userName', userName);
@@ -140,21 +125,21 @@
                 showScreen('lobbyScreen');
             } catch (error) {
                 console.error("Error al crear la sala:", error);
-                showModal("No se pudo crear la sala. Inténtalo de nuevo.");
+                // Ya no se usa el modal
             }
         });
 
         joinRoomBtn.addEventListener('click', async () => {
             userName = userNameInput.value.trim();
             if (!userName) {
-                showModal("Por favor, ingresa un nombre de usuario.");
+                console.error("Por favor, ingresa un nombre de usuario.");
                 return;
             }
             localStorage.setItem('userName', userName);
 
             const roomCode = joinRoomInput.value.trim().toUpperCase();
             if (!roomCode) {
-                showModal("Por favor, ingresa un código de sala.");
+                console.error("Por favor, ingresa un código de sala.");
                 return;
             }
 
@@ -184,7 +169,7 @@
                 showScreen('lobbyScreen');
             } catch (error) {
                 console.error("Error al unirse a la sala:", error);
-                showModal("No se pudo unir a la sala. Verifica el código e inténtalo de nuevo.");
+                // Ya no se usa el modal
             }
         });
 
@@ -204,12 +189,11 @@
                         showGameOver(roomData);
                     }
                 } else {
-                    showModal("La sala ha sido eliminada.");
+                    console.error("La sala ha sido eliminada.");
                     showScreen('homeScreen');
                 }
             }, (error) => {
                 console.error("Error al escuchar la sala:", error);
-                showModal("Se perdió la conexión. Inténtalo de nuevo.");
                 showScreen('homeScreen');
             });
         }
@@ -246,7 +230,7 @@
                 const roomData = roomDocForTxn.data();
 
                 if (roomData.players.length < 2) {
-                    showModal("Necesitas al menos 2 jugadores para empezar el juego.");
+                    console.error("Necesitas al menos 2 jugadores para empezar el juego.");
                     return;
                 }
                 
@@ -291,7 +275,7 @@
                     gamePlayersList.appendChild(li);
                 });
             } else {
-                showModal("No se pudo encontrar tu rol en esta sala.");
+                console.error("No se pudo encontrar tu rol en esta sala.");
                 showScreen('homeScreen');
             }
         }
@@ -334,7 +318,7 @@
                             b.disabled = true;
                             b.classList.add('bg-gray-500', 'cursor-not-allowed');
                         });
-                        showModal("Tu voto ha sido registrado.");
+                        console.log("Tu voto ha sido registrado.");
                     });
                 });
             }, 100);
@@ -511,25 +495,6 @@
             font-size: 0.8rem;
             color: #888;
         }
-        #modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-        .modal-content {
-            background-color: #1E1E1E;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center font-sans">
@@ -593,14 +558,6 @@
                 <h3 class="text-2xl font-bold mb-4">Roles Finales</h3>
                 <ul id="finalPlayersList" class="mb-6 space-y-2"></ul>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal para mensajes de error -->
-    <div id="modal" class="hidden">
-        <div class="modal-content">
-            <p id="modalMessage" class="text-lg text-white mb-4"></p>
-            <button id="modalCloseBtn" class="btn btn-primary p-3 rounded-lg font-semibold text-lg">Cerrar</button>
         </div>
     </div>
 
