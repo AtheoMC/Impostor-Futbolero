@@ -251,7 +251,7 @@
                         assignAndShowRole(roomData);
                     } else if (roomData.status === 'voting') {
                         showVotingScreen(roomData);
-                        checkMajorityVote(roomData); // Reactivado para verificar automáticamente
+                        checkMajorityVote(roomData);
                     } else if (roomData.status === 'game_over') {
                         showGameOver(roomData);
                     }
@@ -433,7 +433,7 @@
                     });
                 });
                 document.getElementById("exitVotingBtn").addEventListener("click", () => {
-                    showScreen("gameScreen");
+                    votingScreen.classList.add("hidden"); // Simplemente oculta la pantalla de votación
                 });
             }, 100);
         }
