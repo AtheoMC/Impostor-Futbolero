@@ -30,6 +30,36 @@
             measurementId: "G-W7NY2T2V2C"
         };
         
+        // --- Lista de Futbolistas (Top 100 y Venezolanos) ---
+        const futbolistas = [
+            // Jugadores globales
+            "Pelé", "Diego Maradona", "Lionel Messi", "Cristiano Ronaldo", "Zinedine Zidane",
+            "Johan Cruyff", "Franz Beckenbauer", "Ferenc Puskás", "Alfredo Di Stéfano", "Garrincha",
+            "Michel Platini", "Lev Yashin", "Eusébio", "Ronaldo Nazário", "Marco van Basten",
+            "Bobby Charlton", "George Best", "Gerd Müller", "Paolo Maldini", "Bebeto",
+            "Romário", "Ronaldinho", "Kaká", "Thierry Henry", "Raúl González",
+            "Andrés Iniesta", "Xavi Hernández", "Luka Modrić", "Sergio Ramos", "Iker Casillas",
+            "Gianluigi Buffon", "Andrea Pirlo", "Alessandro Del Piero", "Francesco Totti", "Roberto Baggio",
+            "Dennis Bergkamp", "Ruud Gullit", "Frank Rijkaard", "Edwin van der Sar", "Kylian Mbappé",
+            "Erling Haaland", "Neymar Jr.", "Mohamed Salah", "Kevin De Bruyne", "Harry Kane",
+            "Robert Lewandowski", "Karim Benzema", "Luis Suárez", "Arjen Robben", "Franck Ribéry",
+            "Manuel Neuer", "Alisson Becker", "Thibaut Courtois", "Virgil van Dijk", "Sergio Agüero",
+            "David Beckham", "Paul Scholes", "Ryan Giggs", "Steven Gerrard", "Frank Lampard",
+            "Didier Drogba", "Samuel Eto'o", "Michael Essien", "Yaya Touré", "Daniele De Rossi",
+            "N'Golo Kanté", "Patrick Vieira", "Claude Makélélé", "Thiago Silva", "Giorgio Chiellini",
+            "Leonardo Bonucci", "José Mourinho", "Pep Guardiola", "Jürgen Klopp", "Carlo Ancelotti",
+            "Arsène Wenger", "Sir Alex Ferguson", "Diego Simeone", "Marc Overmars", "Javier Zanetti",
+            "Gabriel Batistuta", "Hernán Crespo", "Juan Román Riquelme", "Ariel Ortega", "Marcelo Salas",
+            "Iván Zamorano", "Carlos Valderrama", "René Higuita", "Jorge Campos", "Hugo Sánchez",
+            "Claudio Caniggia", "Enzo Francescoli", "Alexis Sánchez", "Arturo Vidal", "Keylor Navas",
+            "Hirving Lozano", "Alphonso Davies", "Christian Pulisic", "Shinji Kagawa", "Heung-min Son",
+            "Mohamed Aboutrika", "Wael Gomaa", "Hossam Hassan", "Essam El-Hadary", "Mido",
+            "Javier Pastore", "Gonzalo Higuaín", "Ángel Di María", "Paulo Dybala", "Juan Sebastián Verón",
+            // Jugadores venezolanos
+            "Juan Arango", "Salomón Rondón", "Tomás Rincón", "Oswaldo Vizcarrondo", "José Manuel Rey",
+            "Gabriel Cichero", "Yeferson Soteldo", "Josef Martínez", "Wuilker Fariñez", "Fernando Amorebieta"
+        ];
+        
         // --- Configuración e inicialización de Firebase ---
         let db;
         let auth;
@@ -70,6 +100,8 @@
         const userIdDisplay = document.getElementById('userIdDisplay');
         const messageModal = document.getElementById('messageModal');
         const messageText = document.getElementById('messageText');
+        const gamePlayersList = document.getElementById('gamePlayersList');
+        const countdownTimer = document.getElementById('countdownTimer');
 
         let currentRoomId = null;
         let userRole = null;
@@ -219,6 +251,7 @@
                         assignAndShowRole(roomData);
                     } else if (roomData.status === 'voting') {
                         showVotingScreen(roomData);
+                        checkMajorityVote(roomData); // Nueva lógica para verificar la mayoría
                     } else if (roomData.status === 'game_over') {
                         showGameOver(roomData);
                     }
@@ -248,7 +281,8 @@
                 lobbyPlayersList.appendChild(li);
             });
 
-            if (roomData.host.userId === userId && roomData.players.length >= 2) {
+            // Requerir 3 o más jugadores para empezar
+            if (roomData.host.userId === userId && roomData.players.length >= 3) {
                 startGameBtn.classList.remove('hidden');
             } else {
                 startGameBtn.classList.add('hidden');
@@ -264,50 +298,79 @@
                 }
                 const roomData = roomDocForTxn.data();
 
-                if (roomData.players.length < 2) {
-                    showMessage("Necesitas al menos 2 jugadores para empezar el juego.");
+                if (roomData.players.length < 3) {
+                    showMessage("Necesitas al menos 3 jugadores para empezar el juego.");
                     return;
                 }
                 
-                // Asignar roles aleatoriamente
                 const players = [...roomData.players];
-                const impostorIndex = Math.floor(Math.random() * players.length);
-                const updatedPlayers = players.map((player, index) => {
-                    return { ...player, role: index === impostorIndex ? 'Impostor' : 'Futbolero', isEliminated: false };
-                });
+                const totalPlayers = players.length;
+                let impostorCount = 1;
+                // 50% de probabilidad de tener 2 impostores si hay más de 6 jugadores
+                if (totalPlayers > 6 && Math.random() < 0.5) {
+                    impostorCount = 2;
+                }
+
+                // Barajar los jugadores para la asignación aleatoria de roles
+                players.sort(() => Math.random() - 0.5);
+
+                const updatedPlayers = players.map(player => ({ ...player, role: 'Futbolero', isEliminated: false }));
+                
+                for (let i = 0; i < impostorCount; i++) {
+                    updatedPlayers[i].role = 'Impostor';
+                }
+
+                const randomFutbolista = futbolistas[Math.floor(Math.random() * futbolistas.length)];
 
                 transaction.update(roomDocRef, {
                     players: updatedPlayers,
                     status: 'in_game',
+                    futbolista: randomFutbolista,
                     votes: {},
                     gameStartedAt: new Date()
                 });
             });
         });
 
-        // Asignar y mostrar el rol al usuario actual
+        // Asignar y mostrar el rol y el futbolista al usuario actual
         function assignAndShowRole(roomData) {
             const player = roomData.players.find(p => p.userId === userId);
-            if (player) {
+            const futbolista = roomData.futbolista;
+            if (player && futbolista) {
                 userRole = player.role;
-                roleCard.innerHTML = `
-                    <h3 class="text-4xl font-bold mb-2">Tu rol es:</h3>
-                    <p class="text-6xl font-extrabold mb-4 ${userRole === 'Impostor' ? 'text-red-500' : 'text-green-500'}">
-                        ${userRole}
-                    </p>
-                    <p class="text-xl text-gray-400">
-                        ${userRole === 'Impostor' ? 'Tu objetivo es sabotear el partido. Evita que el juego termine correctamente.' : 'Tu objetivo es jugar y marcar un gol. ¡Atrapa al impostor!'}
-                    </p>
-                `;
+                let roleHtml = '';
+                if (userRole === 'Impostor') {
+                    roleHtml = `
+                        <h3 class="text-4xl font-bold mb-2">Tu rol es:</h3>
+                        <p class="text-6xl font-extrabold mb-4 text-red-500">Impostor</p>
+                        <p class="text-xl text-gray-400">
+                            No sabes quién es el futbolista. Tu objetivo es pretender que lo sabes y engañar a los demás.
+                        </p>
+                    `;
+                } else {
+                    roleHtml = `
+                        <h3 class="text-4xl font-bold mb-2">Tu rol es:</h3>
+                        <p class="text-6xl font-extrabold mb-4 text-green-500">Futbolero</p>
+                        <p class="text-xl text-gray-400">
+                            El futbolista es: <span class="font-bold text-yellow-400">${futbolista}</span>
+                        </p>
+                        <p class="text-xl text-gray-400 mt-2">
+                            Tu objetivo es identificar al impostor. Habla sobre el futbolista para descubrir quién no sabe de qué hablas.
+                        </p>
+                    `;
+                }
+                roleCard.innerHTML = roleHtml;
                 showScreen('gameScreen');
 
                 // Mostrar la lista de jugadores en la pantalla de juego
-                const gamePlayersList = document.getElementById('gamePlayersList');
                 gamePlayersList.innerHTML = '';
                 roomData.players.forEach(p => {
                     const li = document.createElement('li');
                     li.textContent = p.name;
                     li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                    if (p.isEliminated) {
+                        li.classList.add('line-through', 'text-gray-500');
+                    }
                     gamePlayersList.appendChild(li);
                 });
             } else {
@@ -329,6 +392,12 @@
             showScreen('votingScreen');
             votingPlayersList.innerHTML = '';
             hasVoted = roomData.votes[userId] !== undefined;
+            
+            // Si el jugador actual ya está eliminado, no puede votar
+            const currentPlayer = roomData.players.find(p => p.userId === userId);
+            if (currentPlayer && currentPlayer.isEliminated) {
+                hasVoted = true;
+            }
 
             roomData.players.forEach(player => {
                 // Solo muestra jugadores que no están eliminados
@@ -342,7 +411,8 @@
                     votingPlayersList.appendChild(li);
                 }
             });
-
+            
+            // Añadir event listeners para los botones de voto
             setTimeout(() => {
                 document.querySelectorAll('.vote-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
@@ -359,23 +429,9 @@
                     });
                 });
             }, 100);
-
-            // Temporizador para la votación
-            let timer = 10;
-            voteTimerDisplay.textContent = timer;
-            if (timerIntervalId) {
-                clearInterval(timerIntervalId);
-            }
-            timerIntervalId = setInterval(() => {
-                timer--;
-                voteTimerDisplay.textContent = timer;
-                if (timer <= 0) {
-                    clearInterval(timerIntervalId);
-                    processVotes(roomData.players);
-                }
-            }, 1000);
         }
         
+        // Función para registrar un voto
         async function vote(votedPlayerId) {
             await runTransaction(db, async (transaction) => {
                 const roomDocForTxn = await transaction.get(roomDocRef);
@@ -387,55 +443,72 @@
                 transaction.update(roomDocRef, { votes: votes });
             });
         }
-        
-        async function processVotes(players) {
-            const roomDoc = await getDoc(roomDocRef);
-            const roomData = roomDoc.data();
-            const votes = roomData.votes || {};
 
+        // Nueva función para verificar la mayoría de votos
+        async function checkMajorityVote(roomData) {
+            const votes = roomData.votes || {};
+            const activePlayers = roomData.players.filter(p => !p.isEliminated);
+            const numVoters = activePlayers.length;
+            
             const voteCounts = {};
             for (const voterId in votes) {
                 const votedPlayerId = votes[voterId];
                 voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] || 0) + 1;
             }
 
-            let mostVotedPlayerId = null;
-            let maxVotes = 0;
             for (const playerId in voteCounts) {
-                if (voteCounts[playerId] > maxVotes) {
-                    maxVotes = voteCounts[playerId];
-                    mostVotedPlayerId = playerId;
+                if (voteCounts[playerId] > numVoters / 2) {
+                    // Mayoría de votos alcanzada, procesar la eliminación
+                    const eliminatedPlayer = roomData.players.find(p => p.userId === playerId);
+                    if (eliminatedPlayer) {
+                        await eliminateAndCheckWin(eliminatedPlayer.userId, roomData.players);
+                    }
+                    break;
                 }
             }
-            
-            let winner = 'Futboleros';
-            if (mostVotedPlayerId) {
-                const eliminatedPlayer = players.find(p => p.userId === mostVotedPlayerId);
-                if (eliminatedPlayer && eliminatedPlayer.role === 'Impostor') {
-                    winner = 'Futboleros';
-                } else {
+        }
+        
+        // Función para eliminar al jugador y verificar el estado del juego
+        async function eliminateAndCheckWin(eliminatedPlayerId, currentPlayers) {
+            await runTransaction(db, async (transaction) => {
+                const roomDocForTxn = await transaction.get(roomDocRef);
+                const roomData = roomDocForTxn.data();
+                const players = roomData.players;
+                
+                const updatedPlayers = players.map(p => {
+                    if (p.userId === eliminatedPlayerId) {
+                        return { ...p, isEliminated: true };
+                    }
+                    return p;
+                });
+
+                const remainingPlayers = updatedPlayers.filter(p => !p.isEliminated);
+                const remainingImpostors = remainingPlayers.filter(p => p.role === 'Impostor');
+                const remainingFutboleros = remainingPlayers.filter(p => p.role === 'Futbolero');
+
+                let winner = null;
+                if (remainingImpostors.length === 0) {
+                     winner = 'Futboleros';
+                } else if (remainingImpostors.length >= remainingFutboleros.length) {
                     winner = 'Impostor';
                 }
-            } else {
-                 winner = 'Futboleros';
-            }
 
-            if (mostVotedPlayerId) {
-                await runTransaction(db, async (transaction) => {
-                    const roomDocForTxn = await transaction.get(roomDocRef);
-                    const roomData = roomDocForTxn.data();
-                    const players = roomData.players;
-                    const updatedPlayers = players.map(p => {
-                        if (p.userId === mostVotedPlayerId) {
-                            return { ...p, isEliminated: true };
-                        }
-                        return p;
+                if (winner) {
+                    transaction.update(roomDocRef, {
+                        status: 'game_over',
+                        winner: winner,
+                        eliminatedPlayer: updatedPlayers.find(p => p.userId === eliminatedPlayerId).name,
+                        players: updatedPlayers
                     });
-                    transaction.update(roomDocRef, { players: updatedPlayers });
-                });
-            }
-
-            await setDoc(roomDocRef, { status: 'game_over', winner: winner }, { merge: true });
+                } else {
+                    transaction.update(roomDocRef, {
+                        status: 'in_game',
+                        votes: {},
+                        players: updatedPlayers,
+                        futbolista: futbolistas[Math.floor(Math.random() * futbolistas.length)]
+                    });
+                }
+            });
         }
         
         // Mostrar la pantalla de fin de juego
@@ -452,7 +525,12 @@
             roomData.players.forEach(p => {
                 const li = document.createElement('li');
                 li.textContent = `${p.name} - ${p.role}`;
-                li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                li.classList.add('p-2', 'rounded-lg', 'text-lg', 'text-center');
+                if (p.role === 'Impostor') {
+                    li.classList.add('bg-red-800', 'text-white');
+                } else {
+                    li.classList.add('bg-green-800', 'text-white');
+                }
                 if (p.isEliminated) {
                     li.classList.add('line-through', 'text-gray-400');
                 }
@@ -460,14 +538,29 @@
             });
             showScreen('gameOverScreen');
             
-            // Reiniciar la partida automáticamente después de 10 segundos
-            setTimeout(async () => {
-                await setDoc(roomDocRef, {
-                    players: roomData.players.map(p => ({ userId: p.userId, name: p.name, isEliminated: false })),
-                    status: 'lobby',
-                    votes: {}
-                });
-            }, 10000);
+            // Contador para el reinicio automático
+            let timer = 10;
+            countdownTimer.textContent = `Reiniciando en ${timer}s`;
+            if (timerIntervalId) {
+                clearInterval(timerIntervalId);
+            }
+            timerIntervalId = setInterval(() => {
+                timer--;
+                countdownTimer.textContent = `Reiniciando en ${timer}s`;
+                if (timer <= 0) {
+                    clearInterval(timerIntervalId);
+                    resetGameToLobby(roomData);
+                }
+            }, 1000);
+        }
+
+        // Reiniciar el juego a la pantalla del lobby
+        async function resetGameToLobby(roomData) {
+            await setDoc(roomDocRef, {
+                players: roomData.players.map(p => ({ userId: p.userId, name: p.name, isEliminated: false })),
+                status: 'lobby',
+                votes: {}
+            });
         }
         
     </script>
@@ -594,7 +687,7 @@
     <div id="votingScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
         <div class="container card text-center p-8">
             <h2 class="text-3xl font-bold mb-4">¡A Votar!</h2>
-            <p class="text-lg mb-2">Tiempo restante: <span id="voteTimerDisplay" class="font-bold">10</span>s</p>
+            <p class="text-lg mb-2 text-gray-400">Vota para eliminar a un sospechoso. El jugador con la mayoría de votos será expulsado de la partida.</p>
             <ul id="votingPlayersList" class="mb-6 space-y-2"></ul>
         </div>
     </div>
@@ -606,6 +699,7 @@
                 <h3 class="text-2xl font-bold mb-4">Roles Finales</h3>
                 <ul id="finalPlayersList" class="mb-6 space-y-2"></ul>
             </div>
+            <p id="countdownTimer" class="text-lg mt-4 font-bold text-yellow-400"></p>
         </div>
     </div>
 
