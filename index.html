@@ -382,8 +382,8 @@
         // Evento para llamar a la votación
         const callVoteBtn = document.getElementById('callVoteBtn');
         if (callVoteBtn) {
-            callVoteBtn.addEventListener('click', async () => {
-                await setDoc(roomDocRef, { status: 'voting' }, { merge: true });
+            callVoteBtn.addEventListener("click", async () => {
+                showScreen("votingScreen");
             });
         }
 
@@ -433,7 +433,7 @@
                     });
                 });
                 document.getElementById("exitVotingBtn").addEventListener("click", () => {
-                    votingScreen.classList.add("hidden"); // Simplemente oculta la pantalla de votación
+                    showScreen("gameScreen");
                 });
             }, 100);
         }
