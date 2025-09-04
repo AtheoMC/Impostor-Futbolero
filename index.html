@@ -188,6 +188,7 @@
         let roomDocRef = null;
         let unsubscribeFromRoom = null;
         let countdownInterval = null;
+        let authStateChecked = false;
 
         // Lista de Futbolistas y sus fotos
         const futbolistas = [
@@ -278,7 +279,10 @@
             if (user) {
                 myUserId = user.uid;
                 console.log("Usuario autenticado:", myUserId);
-                switchScreen(loginScreen);
+                if (!authStateChecked) {
+                    switchScreen(loginScreen);
+                    authStateChecked = true;
+                }
             } else {
                 console.log("Iniciando sesión anónimamente...");
                 await signInAnonymously(auth);
@@ -291,6 +295,9 @@
                 console.error("Error al iniciar sesión con token personalizado:", error);
                 signInAnonymously(auth);
             });
+        } else {
+            // Este es el cambio clave: si no hay un token, inicia la sesión anónima de inmediato.
+            signInAnonymously(auth);
         }
 
         // Función para generar un código de sala aleatorio
