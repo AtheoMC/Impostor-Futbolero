@@ -145,7 +145,7 @@
             <!-- Contador para el inicio del juego -->
             <div id="countdownTimer" class="hidden mb-6">10</div>
 
-            <button id="startGameBtn" class="btn btn-green w-full p-4 rounded-lg font-semibold text-xl hidden">Empezar Juego</button>
+            <button id="startGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl hidden">Empezar Juego</button>
             <p class="text-sm mt-4 text-gray-500">Comparte el código con tus amigos para que se unan.</p>
         </div>
     </div>
@@ -545,7 +545,6 @@
                 }
                 
                 const shuffledPlayers = [...roomData.players].sort(() => 0.5 - Math.random());
-                // Lógica corregida para la cantidad de impostores
                 const impostorCount = playerCount >= 5 && Math.random() < 0.5 ? 2 : 1;
                 const impostorIds = shuffledPlayers.slice(0, impostorCount).map(p => p.id);
                 
@@ -757,7 +756,6 @@
                 return;
             }
         }
-
     </script>
 </body>
 </html>
