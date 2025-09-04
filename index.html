@@ -169,15 +169,14 @@
     <script type="module">
         // Importaciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, updateDoc, arrayUnion, arrayRemove, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuración de Firebase
         setLogLevel('debug');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -273,29 +272,20 @@
             screen.classList.remove('hidden');
         }
 
-        // Manejar el estado de autenticación
-        async function handleAuth() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Error al iniciar sesión:", error);
-            }
-        }
-
-        // La nueva lógica que espera por la autenticación
-        onAuthStateChanged(auth, (user) => {
+        // Manejar el estado de autenticación de forma segura
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 myUserId = user.uid;
                 console.log("Usuario autenticado:", myUserId);
                 switchScreen(loginScreen);
             } else {
-                console.log("No hay usuario autenticado. Se intentará iniciar sesión.");
-                // Esto maneja el flujo de inicio de sesión inicial
-                handleAuth();
+                console.log("No hay usuario, intentando iniciar sesión anónimamente.");
+                // Intentar iniciar sesión de forma anónima si no hay usuario
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Error al iniciar sesión anónimamente:", error);
+                }
             }
         });
 
