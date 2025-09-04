@@ -6,210 +6,33 @@
     <title>Impostor Futbolero</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #121212;
-            color: #E0E0E0;
-            overflow: hidden;
-        }
-        .container {
-            max-width: 90%;
-            margin: auto;
-            padding: 2rem 1rem;
-        }
-        .card {
-            background-color: #1E1E1E;
-            padding: 2rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
-        }
-        .input-field {
-            background-color: #2E2E2E;
-            border: 1px solid #444;
-            color: #E0E0E0;
-        }
-        .btn {
-            transition: transform 0.2s, background-color 0.2s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            border-radius: 0.75rem;
-            padding: 1rem;
-            font-weight: 600;
-        }
-        .btn-primary {
-            background-color: #1a75ff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #1059c9;
-            transform: translateY(-2px);
-        }
-        .btn-secondary {
-            background-color: #333;
-            color: #E0E0E0;
-        }
-        .btn-secondary:hover {
-            background-color: #222;
-            transform: translateY(-2px);
-        }
-        .btn-green {
-            background-color: #28a745;
-            color: white;
-        }
-        .btn-green:hover {
-            background-color: #218838;
-            transform: translateY(-2px);
-        }
-        .role-card {
-            padding: 2rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
-            background-color: #2E2E2E;
-            text-align: center;
-        }
-        .futbolista-photo {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid #fff;
-            margin: 1rem auto;
-        }
-        #countdownTimer {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #fca5a5;
-        }
-        .player-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            background-color: #2e2e2e;
-        }
-        .player-photo {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #fff;
-        }
-        .player-impostor {
-            color: #ef4444; /* Rojo para el impostor */
-            font-weight: bold;
-        }
-        .player-normal {
-            color: #4ade80; /* Verde para los jugadores normales */
-        }
-        .player-expulsed {
-            opacity: 0.5;
-            text-decoration: line-through;
-        }
-        #authStatus {
-            font-size: 0.8rem;
-            color: #999;
-            margin-top: 1rem;
-            text-align: center;
-        }
-    </style>
-</head>
-<body class="bg-gray-900 text-white">
-
-    <!-- Pantalla de Login -->
-    <div id="loginScreen" class="h-screen flex items-center justify-center">
-        <div class="container card text-center">
-            <h1 class="text-4xl font-bold mb-6">Impostor Futbolero</h1>
-            <input type="text" id="playerNameInput" placeholder="Ingresa tu nombre" class="input-field w-full p-4 mb-4 rounded-lg">
-            <div class="space-y-4">
-                <button id="createRoomBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl" disabled>Crear Sala</button>
-                <div class="flex items-center justify-center space-x-2">
-                    <input type="text" id="roomCodeInput" placeholder="Código de Sala" class="input-field p-3 rounded-lg w-2/3">
-                    <button id="joinRoomBtn" class="btn btn-secondary w-1/3 p-3 rounded-lg font-semibold text-lg" disabled>Unirse</button>
-                </div>
-            </div>
-            <div id="authStatus">Conectando con el servidor...</div>
-        </div>
-    </div>
-
-    <!-- Pantalla del Lobby -->
-    <div id="lobbyScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <h2 class="text-3xl font-bold mb-4">Sala de Juego</h2>
-            <p class="text-xl mb-4">Código: <span id="roomCodeDisplay" class="font-bold text-yellow-400"></span></p>
-            <p class="text-lg mb-2">Jugadores:</p>
-            <ul id="lobbyPlayersList" class="mb-6 space-y-2"></ul>
-            
-            <!-- Contador para el inicio del juego -->
-            <div id="countdownTimer" class="hidden mb-6">10</div>
-
-            <button id="startGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl hidden">Empezar Juego</button>
-            <p class="text-sm mt-4 text-gray-500">Comparte el código con tus amigos para que se unan.</p>
-        </div>
-    </div>
-
-    <!-- Pantalla de Juego -->
-    <div id="gameScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <div id="roleCard" class="role-card"></div>
-            <div class="mt-8 w-full">
-                <h3 class="text-2xl font-bold mb-4">Jugadores</h3>
-                <ul id="gamePlayersList" class="mb-6 space-y-2"></ul>
-            </div>
-            <!-- Botón para ir a la votación -->
-            <button id="goToVoteBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl mt-4">Ir a Votación</button>
-        </div>
-    </div>
-
-    <!-- Pantalla de Votación (visible solo para el jugador que la activa) -->
-    <div id="voteScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <h2 class="text-3xl font-bold mb-4">Votación</h2>
-            <p class="text-lg mb-4">Selecciona a quién crees que es el impostor:</p>
-            <!-- Lista de jugadores para votar -->
-            <ul id="votePlayersList" class="mb-6 space-y-2"></ul>
-            <!-- Botón para volver al juego -->
-            <button id="returnToGameBtn" class="btn btn-secondary w-full p-4 rounded-lg font-semibold text-xl mt-4">Volver a la partida</button>
-        </div>
-    </div>
-
-    <!-- Pantalla de Fin de Juego -->
-    <div id="gameOverScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <h2 id="gameOverMessage" class="text-4xl font-bold mb-4"></h2>
-            <p id="impostorReveal" class="text-xl mb-6"></p>
-            <button id="newGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl">Nueva Partida</button>
-        </div>
-    </div>
-
-    <!-- Importaciones y Scripts -->
     <script type="module">
-        // Importaciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Configuración de Firebase
+        
+        // Establecer el nivel de registro para depuración
         setLogLevel('debug');
+
+        // Variables globales del entorno de Canvas
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        let myUserId = '';
-        let currentRoomCode = '';
-        let roomDocRef = null;
-        let unsubscribeFromRoom = null;
-        let countdownInterval = null;
-
-        // Lista de Futbolistas y sus fotos
+        // Configuración de Firebase - Utiliza la configuración proporcionada por el usuario
+        const firebaseConfig = {
+            apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
+            authDomain: "impostor-futbolero-online.firebaseapp.com",
+            projectId: "impostor-futbolero-online",
+            storageBucket: "impostor-futbolero-online.firebasestorage.app",
+            messagingSenderId: "1067586840575",
+            appId: "1:1067586840575:web:32889c085f7cf461bfa9ca",
+            measurementId: "G-W7NY2T2V2C"
+        };
+        
+        // --- Lista de Futbolistas (Top 100 y Venezolanos) ---
         const futbolistas = [
+            // Jugadores globales
             "Pelé", "Diego Maradona", "Lionel Messi", "Cristiano Ronaldo", "Zinedine Zidane",
             "Johan Cruyff", "Franz Beckenbauer", "Ferenc Puskás", "Alfredo Di Stéfano", "Garrincha",
             "Michel Platini", "Lev Yashin", "Eusébio", "Ronaldo Nazário", "Marco van Basten",
@@ -232,542 +55,659 @@
             "Hirving Lozano", "Alphonso Davies", "Christian Pulisic", "Shinji Kagawa", "Heung-min Son",
             "Mohamed Aboutrika", "Wael Gomaa", "Hossam Hassan", "Essam El-Hadary", "Mido",
             "Javier Pastore", "Gonzalo Higuaín", "Ángel Di María", "Paulo Dybala", "Juan Sebastián Verón",
+            // Jugadores venezolanos
             "Juan Arango", "Salomón Rondón", "Tomás Rincón", "Oswaldo Vizcarrondo", "José Manuel Rey",
             "Gabriel Cichero", "Yeferson Soteldo", "Josef Martínez", "Wuilker Fariñez", "Fernando Amorebieta"
         ];
         
-        const fotosFutbolistas = {
-            "Lionel Messi": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg",
-            "Cristiano Ronaldo": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Cristiano_Ronaldo_2018.jpg",
-            "Zinedine Zidane": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Zinedine_Zidane_2006.jpg",
-            "Pelé": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Pele_1970_cropped.jpg",
-            "Diego Maradona": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Diego_Maradona_1986.jpg",
-            "Kylian Mbappé": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Kylian_Mbapp%C3%A9_2022.jpg",
-            "Neymar Jr.": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Neymar_Jr_PSG_2022.jpg/800px-Neymar_Jr_PSG_2022.jpg",
-            "Erling Haaland": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Erling_Haaland_2022.jpg",
-            "Johan Cruyff": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Johan_Cruyff_1974b.JPG/800px-Johan_Cruyff_1974b.JPG",
-            "Franz Beckenbauer": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Franz_Beckenbauer_1974.jpg",
-            "Ronaldo Nazário": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Ronaldo_Naz%C3%A1rio_2018.jpg"
-        };
-
-        const avatarUrls = [
-            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png",
-            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-372-456324.png",
-            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-369-456321.png",
-            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-373-456325.png",
-            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-367-456319.png",
-            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-375-456327.png"
-        ];
-
-        // Elementos del DOM
-        const loginScreen = document.getElementById('loginScreen');
-        const lobbyScreen = document.getElementById('lobbyScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const voteScreen = document.getElementById('voteScreen');
-        const gameOverScreen = document.getElementById('gameOverScreen');
-        const playerNameInput = document.getElementById('playerNameInput');
-        const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomBtn = document.getElementById('joinRoomBtn');
-        const roomCodeInput = document.getElementById('roomCodeInput');
-        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-        const lobbyPlayersList = document.getElementById('lobbyPlayersList');
-        const gamePlayersList = document.getElementById('gamePlayersList');
-        const votePlayersList = document.getElementById('votePlayersList');
-        const startGameBtn = document.getElementById('startGameBtn');
-        const goToVoteBtn = document.getElementById('goToVoteBtn');
-        const returnToGameBtn = document.getElementById('returnToGameBtn');
-        const roleCard = document.getElementById('roleCard');
-        const countdownTimer = document.getElementById('countdownTimer');
-        const newGameBtn = document.getElementById('newGameBtn');
-        const authStatusDiv = document.getElementById('authStatus');
-        const gameOverMessage = document.getElementById('gameOverMessage');
-        const impostorReveal = document.getElementById('impostorReveal');
-
-        let myUserId = '';
-        let currentRoomCode = '';
+        // --- Configuración e inicialización de Firebase ---
+        let db;
+        let auth;
+        let userId = null;
+        let userName = null;
         let roomDocRef = null;
-        let unsubscribeFromRoom = null;
-        let countdownInterval = null;
-
-        // Función para cambiar de pantalla
-        function switchScreen(screen) {
-            loginScreen.classList.add('hidden');
-            lobbyScreen.classList.add('hidden');
-            gameScreen.classList.add('hidden');
-            voteScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            screen.classList.remove('hidden');
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            console.log("Firebase inicializado con éxito.");
+        } catch (error) {
+            console.error("Error al inicializar Firebase:", error);
         }
 
-        // Manejar el estado de autenticación en segundo plano
-        onAuthStateChanged(auth, (user) => {
+        const roomsCollectionName = 'rooms';
+
+        // --- Elementos de la UI ---
+        const loadingScreen = document.getElementById('loadingScreen');
+        const homeScreen = document.getElementById('homeScreen');
+        const lobbyScreen = document.getElementById('lobbyScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const votingScreen = document.getElementById('votingScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const userNameInput = document.getElementById('userNameInput');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomInput = document.getElementById('joinRoomInput');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const lobbyPlayersList = document.getElementById('lobbyPlayersList');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const roleCard = document.getElementById('roleCard');
+        const votingPlayersList = document.getElementById('votingPlayersList');
+        const voteTimerDisplay = document.getElementById('voteTimerDisplay');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const finalPlayersList = document.getElementById('finalPlayersList');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const messageModal = document.getElementById('messageModal');
+        const messageText = document.getElementById('messageText');
+        const gamePlayersList = document.getElementById('gamePlayersList');
+        const countdownTimer = document.getElementById('countdownTimer');
+
+        let currentRoomId = null;
+        let userRole = null;
+        let hasVoted = false;
+        let timerIntervalId = null;
+
+        // Función para mostrar una pantalla
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        // Función para mostrar mensajes temporales en la UI
+        function showMessage(message) {
+            messageText.textContent = message;
+            messageModal.classList.remove('hidden');
+            setTimeout(() => {
+                messageModal.classList.add('hidden');
+            }, 3000); // El mensaje desaparece después de 3 segundos
+        }
+
+        // --- Lógica de Autenticación y Carga ---
+        let authHandled = false;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (authHandled) return;
+            authHandled = true;
+
             if (user) {
-                myUserId = user.uid;
-                authStatusDiv.textContent = 'Conectado. Puedes crear o unirte a una sala.';
-                createRoomBtn.disabled = false;
-                joinRoomBtn.disabled = false;
+                userId = user.uid;
+                console.log("Usuario autenticado:", userId);
+                userIdDisplay.textContent = `ID de Usuario: ${userId}`;
+                userName = localStorage.getItem('userName');
+                if (userName) {
+                    userNameInput.value = userName;
+                }
+                showMessage("Conexión a la base de datos exitosa.");
+                showScreen('homeScreen');
             } else {
-                console.log("No hay usuario. Intentando iniciar sesión anónimamente...");
-                authStatusDiv.textContent = 'Autenticando...';
-                // Usar el token personalizado si está disponible, de lo contrario, usar inicio de sesión anónimo.
-                if (initialAuthToken) {
-                    signInWithCustomToken(auth, initialAuthToken).catch(error => {
-                        console.error("Error al iniciar sesión con token personalizado:", error);
-                        signInAnonymously(auth).catch(error => {
-                            console.error("Error al iniciar sesión anónimamente:", error);
-                            authStatusDiv.textContent = 'Error de conexión. Intenta recargar la página.';
-                        });
-                    });
-                } else {
-                    signInAnonymously(auth).catch(error => {
-                        console.error("Error al iniciar sesión anónimamente:", error);
-                        authStatusDiv.textContent = 'Error de conexión. Intenta recargar la página.';
-                    });
+                console.log("Usuario no autenticado, iniciando sesión anónima...");
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error en la autenticación:", error);
+                    showMessage("Error al iniciar sesión. Intenta recargar la página.");
+                    showScreen('homeScreen');
                 }
             }
         });
+        
+        // Fallback si la autenticación es demasiado lenta
+        setTimeout(() => {
+            if (!authHandled) {
+                console.log("Autenticación lenta, pasando a la pantalla de inicio como fallback.");
+                showScreen('homeScreen');
+            }
+        }, 5000);
 
-        function generateRoomCode() {
-            return Math.random().toString(36).substring(2, 6).toUpperCase();
-        }
-
-        function getPlayerPhoto() {
-            return avatarUrls[Math.floor(Math.random() * avatarUrls.length)];
-        }
-
-        function updatePlayersList(players, listElement, impostorIds = [], isVoteList = false, votes = {}) {
-            listElement.innerHTML = '';
-            players.forEach(player => {
-                if (isVoteList && (player.id === myUserId || player.isExpulsed)) {
-                    return;
-                }
-                
-                const li = document.createElement('li');
-                li.className = 'player-item';
-
-                // Añadir clase para jugadores expulsados
-                if (player.isExpulsed) {
-                    li.classList.add('player-expulsed');
-                }
-                
-                const playerPhoto = document.createElement('img');
-                playerPhoto.className = 'player-photo';
-                playerPhoto.src = player.photoURL;
-                playerPhoto.onerror = function() {
-                    this.src = 'https://placehold.co/40x40/000000/FFFFFF?text=P';
-                };
-                
-                const playerName = document.createElement('span');
-                let nameText = player.name;
-                if (isVoteList) {
-                    const voteCount = votes[player.id] || 0;
-                    nameText += ` (${voteCount} votos)`;
-                }
-                playerName.textContent = nameText;
-                playerName.className = 'text-xl';
-
-                li.appendChild(playerPhoto);
-                li.appendChild(playerName);
-                listElement.appendChild(li);
-
-                if (isVoteList) {
-                    li.classList.add('cursor-pointer', 'hover:bg-gray-700');
-                    li.addEventListener('click', () => handleVote(player.id));
-                }
-
-                if (impostorIds.length > 0) {
-                    if (impostorIds.includes(player.id)) {
-                        li.classList.add('player-impostor');
-                    } else {
-                        li.classList.add('player-normal');
-                    }
-                }
-            });
-        }
-
+        // --- Lógica del Juego ---
         createRoomBtn.addEventListener('click', async () => {
-            if (!myUserId) {
-                console.error("Error: No se ha podido autenticar. Por favor, espera a que el estado cambie o recarga la página.");
+            userName = userNameInput.value.trim();
+            if (!userName) {
+                showMessage("Por favor, ingresa un nombre de usuario.");
                 return;
             }
-            const myPlayerName = playerNameInput.value.trim();
-            if (!myPlayerName) {
-                console.error("El nombre de jugador no puede estar vacío.");
-                return;
-            }
+            localStorage.setItem('userName', userName);
 
-            const newRoomCode = generateRoomCode();
-            const player = {
-                id: myUserId,
-                name: myPlayerName,
-                isHost: true,
-                photoURL: getPlayerPhoto(),
-                isImpostor: false,
-                isExpulsed: false,
-                hasVoted: false
-            };
-
-            const roomRef = doc(db, `artifacts/${appId}/public/data/rooms`, newRoomCode);
             try {
-                await setDoc(roomRef, {
-                    roomCode: newRoomCode,
-                    gameStatus: 'lobby',
-                    players: [player],
-                    hostId: myUserId,
-                    impostorIds: [],
-                    futbolista: null,
-                    votes: {}
+                const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', roomsCollectionName, roomCode);
+                
+                await setDoc(roomDocRef, {
+                    host: { userId: userId, name: userName },
+                    players: [{ userId: userId, name: userName, isEliminated: false }],
+                    status: 'lobby',
+                    votes: {},
+                    createdAt: new Date()
                 });
 
-                currentRoomCode = newRoomCode;
-                roomDocRef = roomRef;
-                subscribeToRoom();
-                roomCodeDisplay.textContent = newRoomCode;
-                startGameBtn.classList.remove('hidden');
-                switchScreen(lobbyScreen);
-            } catch (e) {
-                console.error("Error al crear la sala:", e);
+                currentRoomId = roomCode;
+                console.log("Sala creada con ID:", currentRoomId);
+                subscribeToRoomUpdates(currentRoomId);
+                showScreen('lobbyScreen');
+            } catch (error) {
+                console.error("Error al crear la sala:", error);
+                showMessage("No se pudo crear la sala. Inténtalo de nuevo.");
             }
         });
 
         joinRoomBtn.addEventListener('click', async () => {
-            if (!myUserId) {
-                console.error("Error: No se ha podido autenticar. Por favor, espera a que el estado cambie o recarga la página.");
+            userName = userNameInput.value.trim();
+            if (!userName) {
+                showMessage("Por favor, ingresa un nombre de usuario.");
                 return;
             }
-            const myPlayerName = playerNameInput.value.trim();
-            const roomCode = roomCodeInput.value.trim().toUpperCase();
+            localStorage.setItem('userName', userName);
 
-            if (!myPlayerName || !roomCode) {
-                console.error("El nombre de jugador o el código de sala no pueden estar vacíos.");
+            const roomCode = joinRoomInput.value.trim().toUpperCase();
+            if (!roomCode) {
+                showMessage("Por favor, ingresa un código de sala.");
                 return;
             }
 
-            const roomRef = doc(db, `artifacts/${appId}/public/data/rooms`, roomCode);
-            const roomSnap = await getDoc(roomRef);
+            roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', roomsCollectionName, roomCode);
 
-            if (roomSnap.exists()) {
-                const roomData = roomSnap.data();
-                if (roomData.gameStatus === 'lobby') {
-                    const newPlayer = {
-                        id: myUserId,
-                        name: myPlayerName,
-                        isHost: false,
-                        photoURL: getPlayerPhoto(),
-                        isImpostor: false,
-                        isExpulsed: false,
-                        hasVoted: false
-                    };
-                    try {
-                        await updateDoc(roomRef, {
-                            players: arrayUnion(newPlayer)
-                        });
-
-                        currentRoomCode = roomCode;
-                        roomDocRef = roomRef;
-                        subscribeToRoom();
-                        roomCodeDisplay.textContent = roomCode;
-                        switchScreen(lobbyScreen);
-                    } catch (e) {
-                        console.error("Error al unirse a la sala:", e);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomDocForTxn = await transaction.get(roomDocRef);
+                    if (!roomDocForTxn.exists()) {
+                        throw "La sala no existe.";
                     }
-                } else {
-                    console.error("La partida ya ha comenzado.");
-                }
-            } else {
-                console.error("Sala no encontrada.");
+                    const roomData = roomDocForTxn.data();
+
+                    if (roomData.status !== 'lobby') {
+                        throw "La sala ya ha empezado el juego.";
+                    }
+                    
+                    const players = roomData.players;
+                    if (!players.find(p => p.userId === userId)) {
+                        const updatedPlayers = [...players, { userId: userId, name: userName, isEliminated: false }];
+                        transaction.update(roomDocRef, { players: updatedPlayers });
+                    }
+                    currentRoomId = roomCode;
+                    console.log("Unido a la sala:", currentRoomId);
+                });
+                subscribeToRoomUpdates(currentRoomId);
+                showScreen('lobbyScreen');
+            } catch (error) {
+                console.error("Error al unirse a la sala:", error);
+                showMessage("No se pudo unir a la sala. Verifica el código e inténtalo de nuevo.");
             }
         });
 
-        function subscribeToRoom() {
-            if (unsubscribeFromRoom) {
-                unsubscribeFromRoom();
-            }
-            unsubscribeFromRoom = onSnapshot(roomDocRef, (doc) => {
-                if (!doc.exists()) {
-                    console.log("La sala ha sido eliminada.");
-                    switchScreen(loginScreen);
-                    return;
+        // Suscribirse a las actualizaciones de la sala en tiempo real
+        function subscribeToRoomUpdates(roomCode) {
+            roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', roomsCollectionName, roomCode);
+            onSnapshot(roomDocRef, (doc) => {
+                if (doc.exists()) {
+                    const roomData = doc.data();
+                    if (roomData.status === 'lobby') {
+                        updateLobbyUI(roomData);
+                    } else if (roomData.status === 'in_game') {
+                        assignAndShowRole(roomData);
+                    } else if (roomData.status === 'voting') {
+                        showVotingScreen(roomData);
+                        checkMajorityVote(roomData); // Nueva lógica para verificar la mayoría
+                    } else if (roomData.status === 'game_over') {
+                        showGameOver(roomData);
+                    }
+                } else {
+                    showMessage("La sala ha sido eliminada.");
+                    showScreen('homeScreen');
                 }
-                const roomData = doc.data();
-                const players = roomData.players;
-                const hostId = roomData.hostId;
-                const gameStatus = roomData.gameStatus;
-                const impostorIds = roomData.impostorIds || [];
-                const futbolista = roomData.futbolista;
-                const votes = roomData.votes || {};
-
-                updatePlayersList(players, lobbyPlayersList);
-                updatePlayersList(players, gamePlayersList, impostorIds);
-                updatePlayersList(players, votePlayersList, [], true, votes);
-
-                // Re-evaluar condiciones de victoria y expulsión cada vez que la base de datos cambia
-                checkWinConditions(players, impostorIds);
-                
-                // Solo si todos los jugadores que no están expulsados han votado, procesar la votación
-                const livingPlayers = players.filter(p => !p.isExpulsed);
-                const livingPlayersWhoVoted = livingPlayers.filter(p => p.hasVoted);
-                if (livingPlayersWhoVoted.length === livingPlayers.length && livingPlayers.length > 1) {
-                    processVote(players, votes, impostorIds);
-                }
-
-                switch (gameStatus) {
-                    case 'lobby':
-                        countdownTimer.classList.add('hidden');
-                        if (myUserId === hostId) {
-                            startGameBtn.classList.remove('hidden');
-                        }
-                        break;
-                    case 'countdown':
-                        switchScreen(lobbyScreen);
-                        startGameBtn.classList.add('hidden');
-                        countdownTimer.classList.remove('hidden');
-                        startCountdown(roomData.countdownStartTimestamp);
-                        break;
-                    case 'ingame':
-                        if (voteScreen.classList.contains('hidden')) {
-                            switchScreen(gameScreen);
-                        }
-                        const myPlayer = players.find(p => p.id === myUserId);
-                        const myRole = impostorIds.includes(myUserId) ? 'impostor' : 'normal';
-                        displayRole(myRole, futbolista);
-                        break;
-                    case 'gameover':
-                        switchScreen(gameOverScreen);
-                        gameOverMessage.textContent = roomData.winnerMessage;
-                        impostorReveal.textContent = `Los impostores eran: ${players.filter(p => impostorIds.includes(p.id)).map(p => p.name).join(', ')}`;
-                        break;
-                }
+            }, (error) => {
+                console.error("Error al escuchar la sala:", error);
+                showMessage("Se perdió la conexión. Inténtalo de nuevo.");
+                showScreen('homeScreen');
             });
         }
-
-        startGameBtn.addEventListener('click', async () => {
-            await runTransaction(db, async (transaction) => {
-                const roomDoc = await transaction.get(roomDocRef);
-                const roomData = roomDoc.data();
-                
-                if (roomData.hostId !== myUserId) {
-                    throw "Solo el anfitrión puede iniciar el juego.";
+        
+        // Actualizar la UI del lobby
+        function updateLobbyUI(roomData) {
+            roomCodeDisplay.textContent = currentRoomId;
+            lobbyPlayersList.innerHTML = '';
+            roomData.players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player.name;
+                li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                if (player.userId === roomData.host.userId) {
+                    li.textContent += ' (Anfitrión)';
+                    li.classList.add('bg-yellow-600', 'font-bold');
                 }
-                
-                const playerCount = roomData.players.length;
-                if (playerCount < 3) {
-                    console.error("Se necesitan al menos 3 jugadores para empezar.");
+                lobbyPlayersList.appendChild(li);
+            });
+
+            // Requerir 3 o más jugadores para empezar
+            if (roomData.host.userId === userId && roomData.players.length >= 3) {
+                startGameBtn.classList.remove('hidden');
+            } else {
+                startGameBtn.classList.add('hidden');
+            }
+            showScreen('lobbyScreen');
+        }
+        
+        startGameBtn.addEventListener('click', async () => {
+             await runTransaction(db, async (transaction) => {
+                const roomDocForTxn = await transaction.get(roomDocRef);
+                if (!roomDocForTxn.exists()) {
+                    throw "Document does not exist!";
+                }
+                const roomData = roomDocForTxn.data();
+
+                if (roomData.players.length < 3) {
+                    showMessage("Necesitas al menos 3 jugadores para empezar el juego.");
                     return;
                 }
                 
-                const shuffledPlayers = [...roomData.players].sort(() => 0.5 - Math.random());
-                const impostorCount = playerCount >= 5 && Math.random() < 0.5 ? 2 : 1;
-                const impostorIds = shuffledPlayers.slice(0, impostorCount).map(p => p.id);
+                const players = [...roomData.players];
+                const totalPlayers = players.length;
+                let impostorCount = 1;
+                // 50% de probabilidad de tener 2 impostores si hay más de 6 jugadores
+                if (totalPlayers > 6 && Math.random() < 0.5) {
+                    impostorCount = 2;
+                }
+
+                // Barajar los jugadores para la asignación aleatoria de roles
+                players.sort(() => Math.random() - 0.5);
+
+                const updatedPlayers = players.map(player => ({ ...player, role: 'Futbolero', isEliminated: false }));
                 
+                for (let i = 0; i < impostorCount; i++) {
+                    updatedPlayers[i].role = 'Impostor';
+                }
+
                 const randomFutbolista = futbolistas[Math.floor(Math.random() * futbolistas.length)];
-                
-                const updatedPlayers = roomData.players.map(player => ({
-                    ...player,
-                    isImpostor: impostorIds.includes(player.id),
-                    isExpulsed: false,
-                    hasVoted: false
-                }));
-                
+
                 transaction.update(roomDocRef, {
-                    gameStatus: 'countdown',
-                    countdownStartTimestamp: new Date().getTime(),
-                    impostorIds: impostorIds,
-                    futbolista: randomFutbolista,
                     players: updatedPlayers,
-                    votes: {}
+                    status: 'in_game',
+                    futbolista: randomFutbolista,
+                    votes: {},
+                    gameStartedAt: new Date()
                 });
             });
         });
 
-        function startCountdown(startTime) {
-            clearInterval(countdownInterval);
-            const countdownDuration = 10;
-            countdownInterval = setInterval(async () => {
-                const elapsedTime = (new Date().getTime() - startTime) / 1000;
-                const remainingTime = Math.ceil(countdownDuration - elapsedTime);
-                
-                if (remainingTime > 0) {
-                    countdownTimer.textContent = remainingTime;
+        // Asignar y mostrar el rol y el futbolista al usuario actual
+        function assignAndShowRole(roomData) {
+            const player = roomData.players.find(p => p.userId === userId);
+            const futbolista = roomData.futbolista;
+            if (player && futbolista) {
+                userRole = player.role;
+                let roleHtml = '';
+                if (userRole === 'Impostor') {
+                    roleHtml = `
+                        <h3 class="text-4xl font-bold mb-2">Tu rol es:</h3>
+                        <p class="text-6xl font-extrabold mb-4 text-red-500">Impostor</p>
+                        <p class="text-xl text-gray-400">
+                            No sabes quién es el futbolista. Tu objetivo es pretender que lo sabes y engañar a los demás.
+                        </p>
+                    `;
                 } else {
-                    clearInterval(countdownInterval);
-                    countdownTimer.classList.add('hidden');
-                    
-                    await runTransaction(db, async (transaction) => {
-                        const roomDoc = await transaction.get(roomDocRef);
-                        const roomData = roomDoc.data();
-                        if (roomData.gameStatus === 'countdown') {
-                            transaction.update(roomDocRef, { gameStatus: 'ingame' });
-                        }
+                    roleHtml = `
+                        <h3 class="text-4xl font-bold mb-2">Tu rol es:</h3>
+                        <p class="text-6xl font-extrabold mb-4 text-green-500">Futbolero</p>
+                        <p class="text-xl text-gray-400">
+                            El futbolista es: <span class="font-bold text-yellow-400">${futbolista}</span>
+                        </p>
+                        <p class="text-xl text-gray-400 mt-2">
+                            Tu objetivo es identificar al impostor. Habla sobre el futbolista para descubrir quién no sabe de qué hablas.
+                        </p>
+                    `;
+                }
+                roleCard.innerHTML = roleHtml;
+                showScreen('gameScreen');
+
+                // Mostrar la lista de jugadores en la pantalla de juego
+                gamePlayersList.innerHTML = '';
+                roomData.players.forEach(p => {
+                    const li = document.createElement('li');
+                    li.textContent = p.name;
+                    li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                    if (p.isEliminated) {
+                        li.classList.add('line-through', 'text-gray-500');
+                    }
+                    gamePlayersList.appendChild(li);
+                });
+            } else {
+                showMessage("No se pudo encontrar tu rol en esta sala.");
+                showScreen('homeScreen');
+            }
+        }
+        
+        // Evento para llamar a la votación
+        const callVoteBtn = document.getElementById('callVoteBtn');
+        if (callVoteBtn) {
+            callVoteBtn.addEventListener('click', async () => {
+                await setDoc(roomDocRef, { status: 'voting' }, { merge: true });
+            });
+        }
+
+        // Lógica de votación
+        function showVotingScreen(roomData) {
+            showScreen('votingScreen');
+            votingPlayersList.innerHTML = '';
+            hasVoted = roomData.votes[userId] !== undefined;
+            
+            // Si el jugador actual ya está eliminado, no puede votar
+            const currentPlayer = roomData.players.find(p => p.userId === userId);
+            if (currentPlayer && currentPlayer.isEliminated) {
+                hasVoted = true;
+            }
+
+            roomData.players.forEach(player => {
+                // Solo muestra jugadores que no están eliminados
+                if (!player.isEliminated) {
+                    const li = document.createElement('li');
+                    li.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'bg-gray-700', 'rounded-lg', 'text-lg');
+                    li.innerHTML = `
+                        <span class="text-white">${player.name}</span>
+                        <button class="vote-btn btn btn-primary p-2 rounded-lg font-semibold text-sm ${hasVoted ? 'bg-gray-500 cursor-not-allowed' : ''}" data-player-id="${player.userId}" ${hasVoted ? 'disabled' : ''}>Votar</button>
+                    `;
+                    votingPlayersList.appendChild(li);
+                }
+            });
+            
+            // Añadir event listeners para los botones de voto
+            setTimeout(() => {
+                document.querySelectorAll('.vote-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        if (hasVoted) return;
+                        
+                        const votedPlayerId = e.target.getAttribute('data-player-id');
+                        await vote(votedPlayerId);
+                        
+                        document.querySelectorAll('.vote-btn').forEach(b => {
+                            b.disabled = true;
+                            b.classList.add('bg-gray-500', 'cursor-not-allowed');
+                        });
+                        showMessage("Tu voto ha sido registrado.");
                     });
+                });
+            }, 100);
+        }
+        
+        // Función para registrar un voto
+        async function vote(votedPlayerId) {
+            await runTransaction(db, async (transaction) => {
+                const roomDocForTxn = await transaction.get(roomDocRef);
+                const roomData = roomDocForTxn.data();
+                const votes = roomData.votes || {};
+                
+                votes[userId] = votedPlayerId;
+                
+                transaction.update(roomDocRef, { votes: votes });
+            });
+        }
+
+        // Nueva función para verificar la mayoría de votos
+        async function checkMajorityVote(roomData) {
+            const votes = roomData.votes || {};
+            const activePlayers = roomData.players.filter(p => !p.isEliminated);
+            const numVoters = activePlayers.length;
+            
+            const voteCounts = {};
+            for (const voterId in votes) {
+                const votedPlayerId = votes[voterId];
+                voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] || 0) + 1;
+            }
+
+            for (const playerId in voteCounts) {
+                if (voteCounts[playerId] > numVoters / 2) {
+                    // Mayoría de votos alcanzada, procesar la eliminación
+                    const eliminatedPlayer = roomData.players.find(p => p.userId === playerId);
+                    if (eliminatedPlayer) {
+                        await eliminateAndCheckWin(eliminatedPlayer.userId, roomData.players);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Función para eliminar al jugador y verificar el estado del juego
+        async function eliminateAndCheckWin(eliminatedPlayerId, currentPlayers) {
+            await runTransaction(db, async (transaction) => {
+                const roomDocForTxn = await transaction.get(roomDocRef);
+                const roomData = roomDocForTxn.data();
+                const players = roomData.players;
+                
+                const updatedPlayers = players.map(p => {
+                    if (p.userId === eliminatedPlayerId) {
+                        return { ...p, isEliminated: true };
+                    }
+                    return p;
+                });
+
+                const remainingPlayers = updatedPlayers.filter(p => !p.isEliminated);
+                const remainingImpostors = remainingPlayers.filter(p => p.role === 'Impostor');
+                const remainingFutboleros = remainingPlayers.filter(p => p.role === 'Futbolero');
+
+                let winner = null;
+                if (remainingImpostors.length === 0) {
+                     winner = 'Futboleros';
+                } else if (remainingImpostors.length >= remainingFutboleros.length) {
+                    winner = 'Impostor';
+                }
+
+                if (winner) {
+                    transaction.update(roomDocRef, {
+                        status: 'game_over',
+                        winner: winner,
+                        eliminatedPlayer: updatedPlayers.find(p => p.userId === eliminatedPlayerId).name,
+                        players: updatedPlayers
+                    });
+                } else {
+                    transaction.update(roomDocRef, {
+                        status: 'in_game',
+                        votes: {},
+                        players: updatedPlayers,
+                        futbolista: futbolistas[Math.floor(Math.random() * futbolistas.length)]
+                    });
+                }
+            });
+        }
+        
+        // Mostrar la pantalla de fin de juego
+        function showGameOver(roomData) {
+            if (roomData.winner === 'Impostor') {
+                gameOverMessage.textContent = '¡El Impostor ha ganado!';
+                gameOverMessage.classList.add('text-red-500');
+            } else {
+                gameOverMessage.textContent = '¡Los Futboleros han ganado!';
+                gameOverMessage.classList.add('text-green-500');
+            }
+            
+            finalPlayersList.innerHTML = '';
+            roomData.players.forEach(p => {
+                const li = document.createElement('li');
+                li.textContent = `${p.name} - ${p.role}`;
+                li.classList.add('p-2', 'rounded-lg', 'text-lg', 'text-center');
+                if (p.role === 'Impostor') {
+                    li.classList.add('bg-red-800', 'text-white');
+                } else {
+                    li.classList.add('bg-green-800', 'text-white');
+                }
+                if (p.isEliminated) {
+                    li.classList.add('line-through', 'text-gray-400');
+                }
+                finalPlayersList.appendChild(li);
+            });
+            showScreen('gameOverScreen');
+            
+            // Contador para el reinicio automático
+            let timer = 10;
+            countdownTimer.textContent = `Reiniciando en ${timer}s`;
+            if (timerIntervalId) {
+                clearInterval(timerIntervalId);
+            }
+            timerIntervalId = setInterval(() => {
+                timer--;
+                countdownTimer.textContent = `Reiniciando en ${timer}s`;
+                if (timer <= 0) {
+                    clearInterval(timerIntervalId);
+                    resetGameToLobby(roomData);
                 }
             }, 1000);
         }
 
-        function displayRole(role, futbolista) {
-            roleCard.innerHTML = '';
-
-            const roleHeading = document.createElement('h3');
-            roleHeading.className = 'text-3xl font-bold mb-2';
-
-            const roleText = document.createElement('p');
-            roleText.className = 'text-lg';
-
-            if (role === 'impostor') {
-                roleHeading.textContent = '¡Eres el Impostor!';
-                roleHeading.classList.add('text-red-500');
-                roleText.textContent = 'Tu objetivo es eliminar a los demás jugadores sin ser descubierto. No sabes quién es el futbolista.';
-                
-                roleCard.appendChild(roleHeading);
-                roleCard.appendChild(roleText);
-
-            } else {
-                roleHeading.textContent = '¡Eres del Equipo!';
-                roleHeading.classList.add('text-green-500');
-
-                const futbolistaPhoto = document.createElement('img');
-                futbolistaPhoto.className = 'futbolista-photo';
-                const photoURL = fotosFutbolistas[futbolista] || 'https://placehold.co/150x150/000000/FFFFFF?text=FUTBOLISTA';
-                futbolistaPhoto.src = photoURL;
-                futbolistaPhoto.alt = `Foto de ${futbolista}`;
-
-                roleText.innerHTML = `El futbolista es: <span class="font-bold text-yellow-400">${futbolista}</span>. Tu objetivo es identificar al impostor. Habla sobre el futbolista para descubrir quién no sabe de qué hablas.`;
-
-                roleCard.appendChild(roleHeading);
-                roleCard.appendChild(futbolistaPhoto);
-                roleCard.appendChild(roleText);
-            }
+        // Reiniciar el juego a la pantalla del lobby
+        async function resetGameToLobby(roomData) {
+            await setDoc(roomDocRef, {
+                players: roomData.players.map(p => ({ userId: p.userId, name: p.name, isEliminated: false })),
+                status: 'lobby',
+                votes: {}
+            });
         }
         
-        newGameBtn.addEventListener('click', async () => {
-             await runTransaction(db, async (transaction) => {
-                const roomDoc = await transaction.get(roomDocRef);
-                const roomData = roomDoc.data();
-                
-                const updatedPlayers = roomData.players.map(p => ({ 
-                    id: p.id, 
-                    name: p.name, 
-                    isHost: p.isHost,
-                    photoURL: getPlayerPhoto(),
-                    isImpostor: false,
-                    isExpulsed: false,
-                    hasVoted: false
-                }));
-
-                transaction.update(roomDocRef, {
-                    gameStatus: 'lobby',
-                    impostorIds: [],
-                    futbolista: null,
-                    players: updatedPlayers,
-                    votes: {}
-                });
-            });
-            switchScreen(lobbyScreen);
-        });
-
-        goToVoteBtn.addEventListener('click', () => {
-            switchScreen(voteScreen);
-        });
-
-        returnToGameBtn.addEventListener('click', () => {
-            switchScreen(gameScreen);
-        });
-
-        async function handleVote(votedPlayerId) {
-            console.log(`Jugador ${myUserId} votó por ${votedPlayerId}`);
-            
-            await runTransaction(db, async (transaction) => {
-                const roomDoc = await transaction.get(roomDocRef);
-                const roomData = roomDoc.data();
-                
-                const myPlayerIndex = roomData.players.findIndex(p => p.id === myUserId);
-                if (roomData.players[myPlayerIndex].hasVoted) {
-                    console.log("Ya has votado. No puedes votar de nuevo.");
-                    return;
-                }
-
-                const updatedPlayers = roomData.players.map(p => 
-                    p.id === myUserId ? { ...p, hasVoted: true } : p
-                );
-
-                const currentVotes = roomData.votes || {};
-                const updatedVotes = {
-                    ...currentVotes,
-                    [votedPlayerId]: (currentVotes[votedPlayerId] || 0) + 1
-                };
-
-                transaction.update(roomDocRef, {
-                    players: updatedPlayers,
-                    votes: updatedVotes
-                });
-            });
-            
-            // Volver a la pantalla del juego
-            switchScreen(gameScreen);
-        }
-
-        async function processVote(players, votes, impostorIds) {
-            const livingPlayers = players.filter(p => !p.isExpulsed);
-            
-            let mostVotedPlayerId = null;
-            let maxVotes = 0;
-            let tie = false;
-
-            for (const playerId of livingPlayers.map(p => p.id)) {
-                const voteCount = votes[playerId] || 0;
-                if (voteCount > maxVotes) {
-                    maxVotes = voteCount;
-                    mostVotedPlayerId = playerId;
-                    tie = false;
-                } else if (voteCount === maxVotes && maxVotes > 0) {
-                    tie = true;
-                }
-            }
-            
-            if (mostVotedPlayerId && !tie) {
-                // Hay un jugador con mayoría de votos, se expulsa
-                await runTransaction(db, async (transaction) => {
-                    const roomDoc = await transaction.get(roomDocRef);
-                    const roomData = roomDoc.data();
-                    const updatedPlayers = roomData.players.map(p =>
-                        p.id === mostVotedPlayerId ? { ...p, isExpulsed: true } : p
-                    );
-                    
-                    // Reiniciar votos y estado de votación
-                    const playersWithVoteReset = updatedPlayers.map(p => ({...p, hasVoted: false}));
-                    
-                    transaction.update(roomDocRef, {
-                        players: playersWithVoteReset,
-                        votes: {}
-                    });
-                });
-            }
-        }
-
-        async function checkWinConditions(players, impostorIds) {
-            const livingPlayers = players.filter(p => !p.isExpulsed);
-            const livingImpostors = livingPlayers.filter(p => impostorIds.includes(p.id));
-            const livingFutboleros = livingPlayers.filter(p => !impostorIds.includes(p.id));
-            
-            // Condición de victoria de los Impostores
-            if (livingImpostors.length >= livingFutboleros.length && livingImpostors.length > 0) {
-                 await updateDoc(roomDocRef, {
-                    gameStatus: 'gameover',
-                    winnerMessage: '¡Los impostores han ganado!',
-                 });
-                 return;
-            }
-
-            // Condición de victoria de los Futboleros (si se expulsa a un impostor)
-            const impostorsExpulsed = players.filter(p => p.isExpulsed && impostorIds.includes(p.id));
-            if (impostorsExpulsed.length === impostorIds.length) {
-                await updateDoc(roomDocRef, {
-                    gameStatus: 'gameover',
-                    winnerMessage: '¡El equipo ha ganado!',
-                });
-                return;
-            }
-        }
     </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+        }
+        .container {
+            max-width: 90%;
+            margin: auto;
+            padding: 2rem 1rem;
+        }
+        .card {
+            background-color: #1E1E1E;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+        }
+        .input-field {
+            background-color: #2E2E2E;
+            border: 1px solid #444;
+            color: #E0E0E0;
+            padding: 1rem;
+            border-radius: 0.75rem;
+        }
+        .btn {
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary {
+            background-color: #007BFF;
+            color: #fff;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .role-card {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            border: 2px solid;
+            border-image: linear-gradient(45deg, #FFD700, #FFA500) 1;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            text-align: center;
+        }
+        #userIdDisplay {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            color: #888;
+        }
+        #messageModal {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #121212;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 99;
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center font-sans">
+    
+    <div id="loadingScreen" class="screen h-screen flex items-center justify-center">
+        <h1 class="text-3xl font-bold animate-pulse">Cargando...</h1>
+    </div>
+
+    <div id="homeScreen" class="screen hidden h-screen flex items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 class="text-3xl font-bold mb-4">Impostor Futbolero</h2>
+            <p class="mb-6 text-lg text-gray-400">¿Cómo te llamas?</p>
+            <input type="text" id="userNameInput" placeholder="Ingresa tu nombre..." class="input-field w-full mb-4">
+            <div class="space-y-4">
+                <button id="createRoomBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl">Crear Sala</button>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="joinRoomInput" placeholder="Código de sala..." class="input-field flex-grow p-4 rounded-lg text-lg text-center">
+                    <button id="joinRoomBtn" class="btn btn-primary p-4 rounded-lg font-semibold text-lg">Unirse</button>
+                </div>
+            </div>
+            <p class="text-sm mt-4 text-gray-500">
+                Crea una sala para que tus amigos se unan o únete a una existente.
+            </p>
+        </div>
+    </div>
+
+    <div id="lobbyScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 class="text-3xl font-bold mb-4">Sala de Juego</h2>
+            <p class="text-xl mb-4">Código: <span id="roomCodeDisplay" class="font-bold text-yellow-400"></span></p>
+            <p class="text-lg mb-2">Jugadores:</p>
+            <ul id="lobbyPlayersList" class="mb-6 space-y-2"></ul>
+            <button id="startGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl hidden">Empezar Juego</button>
+            <p class="text-sm mt-4 text-gray-500">Comparte el código con tus amigos para que se unan.</p>
+        </div>
+    </div>
+
+    <div id="gameScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
+            <div id="roleCard" class="role-card"></div>
+            <div class="mt-8 w-full">
+                <h3 class="text-2xl font-bold mb-4">Jugadores en la partida</h3>
+                <ul id="gamePlayersList" class="mb-6 space-y-2"></ul>
+            </div>
+            <button id="callVoteBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl mt-4">Llamar a votación</button>
+        </div>
+    </div>
+
+    <div id="votingScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 class="text-3xl font-bold mb-4">¡A Votar!</h2>
+            <p class="text-lg mb-2 text-gray-400">Vota para eliminar a un sospechoso. El jugador con la mayoría de votos será expulsado de la partida.</p>
+            <ul id="votingPlayersList" class="mb-6 space-y-2"></ul>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 id="gameOverMessage" class="text-4xl font-extrabold mb-4"></h2>
+            <div class="mt-8 w-full">
+                <h3 class="text-2xl font-bold mb-4">Roles Finales</h3>
+                <ul id="finalPlayersList" class="mb-6 space-y-2"></ul>
+            </div>
+            <p id="countdownTimer" class="text-lg mt-4 font-bold text-yellow-400"></p>
+        </div>
+    </div>
+
+    <!-- Mensaje temporal sin modal -->
+    <div id="messageModal" class="hidden">
+        <p id="messageText"></p>
+    </div>
+
+    <div id="userIdDisplay"></div>
 </body>
 </html>
