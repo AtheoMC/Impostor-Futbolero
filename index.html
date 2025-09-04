@@ -274,25 +274,28 @@
         }
 
         // Manejar el estado de autenticación
-        onAuthStateChanged(auth, async (user) => {
+        async function handleAuth() {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+            }
+        }
+
+        // La nueva lógica que espera por la autenticación
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Autenticación exitosa
                 myUserId = user.uid;
                 console.log("Usuario autenticado:", myUserId);
                 switchScreen(loginScreen);
             } else {
-                // Autenticación fallida o no existe
-                console.log("No hay usuario autenticado. Intentando iniciar sesión...");
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Error al iniciar sesión:", error);
-                    // Opcional: mostrar un mensaje al usuario en caso de error
-                }
+                console.log("No hay usuario autenticado. Se intentará iniciar sesión.");
+                // Esto maneja el flujo de inicio de sesión inicial
+                handleAuth();
             }
         });
 
