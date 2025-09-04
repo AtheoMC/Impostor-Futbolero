@@ -188,7 +188,6 @@
         let roomDocRef = null;
         let unsubscribeFromRoom = null;
         let countdownInterval = null;
-        let authStateChecked = false;
 
         // Lista de Futbolistas y sus fotos
         const futbolistas = [
@@ -277,28 +276,25 @@
         // Manejar el estado de autenticación
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // Autenticación exitosa
                 myUserId = user.uid;
                 console.log("Usuario autenticado:", myUserId);
-                if (!authStateChecked) {
-                    switchScreen(loginScreen);
-                    authStateChecked = true;
-                }
+                switchScreen(loginScreen);
             } else {
-                console.log("Iniciando sesión anónimamente...");
-                await signInAnonymously(auth);
+                // Autenticación fallida o no existe
+                console.log("No hay usuario autenticado. Intentando iniciar sesión...");
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error al iniciar sesión:", error);
+                    // Opcional: mostrar un mensaje al usuario en caso de error
+                }
             }
         });
-
-        // Autenticación inicial
-        if (initialAuthToken) {
-            signInWithCustomToken(auth, initialAuthToken).catch((error) => {
-                console.error("Error al iniciar sesión con token personalizado:", error);
-                signInAnonymously(auth);
-            });
-        } else {
-            // Este es el cambio clave: si no hay un token, inicia la sesión anónima de inmediato.
-            signInAnonymously(auth);
-        }
 
         // Función para generar un código de sala aleatorio
         function generateRoomCode() {
