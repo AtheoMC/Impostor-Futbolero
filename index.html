@@ -272,12 +272,16 @@
             screen.classList.remove('hidden');
         }
 
+        // Mostrar la pantalla de inicio inmediatamente al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            switchScreen(loginScreen);
+        });
+
         // Manejar el estado de autenticación de forma segura
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 myUserId = user.uid;
                 console.log("Usuario autenticado:", myUserId);
-                switchScreen(loginScreen);
             } else {
                 console.log("No hay usuario, intentando iniciar sesión anónimamente.");
                 // Intentar iniciar sesión de forma anónima si no hay usuario
@@ -334,7 +338,7 @@
         // Funcionalidad de crear sala
         createRoomBtn.addEventListener('click', async () => {
             if (!myUserId) {
-                console.error("No se ha podido autenticar. Intenta recargar la página.");
+                console.error("No se ha podido autenticar. Por favor, espera a que la página se cargue completamente o recarga.");
                 return;
             }
             const myPlayerName = playerNameInput.value.trim();
@@ -376,7 +380,7 @@
         // Funcionalidad de unirse a sala
         joinRoomBtn.addEventListener('click', async () => {
             if (!myUserId) {
-                console.error("No se ha podido autenticar. Intenta recargar la página.");
+                console.error("No se ha podido autenticar. Por favor, espera a que la página se cargue completamente o recarga.");
                 return;
             }
             const myPlayerName = playerNameInput.value.trim();
