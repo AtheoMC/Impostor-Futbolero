@@ -232,6 +232,16 @@
             // Puedes añadir más futbolistas y sus URLs de fotos aquí
         };
 
+        // URLs de avatares para los jugadores
+        const avatarUrls = [
+            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-370-456322.png",
+            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-372-456324.png",
+            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-369-456321.png",
+            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-373-456325.png",
+            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-367-456319.png",
+            "https://cdn.iconscout.com/icon/free/png-256/free-avatar-375-456327.png"
+        ];
+
         // Elementos del DOM
         const loadingScreen = document.getElementById('loadingScreen');
         const loginScreen = document.getElementById('loginScreen');
@@ -288,9 +298,9 @@
             return Math.random().toString(36).substring(2, 6).toUpperCase();
         }
 
-        // Función para obtener la URL de la foto del jugador (si existe, sino usa un placeholder)
-        function getPlayerPhoto(playerName) {
-            return `https://placehold.co/40x40/000000/FFFFFF?text=${playerName.charAt(0).toUpperCase()}`;
+        // Función para obtener la URL de la foto del jugador (ahora usa avatares aleatorios)
+        function getPlayerPhoto() {
+            return avatarUrls[Math.floor(Math.random() * avatarUrls.length)];
         }
 
         // Función para actualizar la lista de jugadores en la UI
@@ -305,6 +315,7 @@
                 playerPhoto.className = 'player-photo';
                 playerPhoto.src = player.photoURL;
                 playerPhoto.onerror = function() {
+                    // Fallback si el avatar no carga
                     this.src = 'https://placehold.co/40x40/000000/FFFFFF?text=P';
                 };
                 
@@ -339,7 +350,7 @@
                 id: myUserId,
                 name: myPlayerName,
                 isHost: true,
-                photoURL: getPlayerPhoto(myPlayerName),
+                photoURL: getPlayerPhoto(), // Usar la nueva función para avatares
             };
 
             const roomRef = doc(db, `artifacts/${appId}/public/data/rooms`, newRoomCode);
@@ -384,7 +395,7 @@
                         id: myUserId,
                         name: myPlayerName,
                         isHost: false,
-                        photoURL: getPlayerPhoto(myPlayerName),
+                        photoURL: getPlayerPhoto(), // Usar la nueva función para avatares
                     };
                     try {
                         await updateDoc(roomRef, {
@@ -584,7 +595,7 @@
                     id: p.id, 
                     name: p.name, 
                     isHost: p.isHost,
-                    photoURL: getPlayerPhoto(p.name),
+                    photoURL: getPlayerPhoto(), // Usar la nueva función para avatares
                     isImpostor: false,
                 }));
 
