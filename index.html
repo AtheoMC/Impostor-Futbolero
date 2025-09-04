@@ -188,7 +188,7 @@
     <script type="module">
         // Importaciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -196,6 +196,7 @@
         setLogLevel('debug');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -302,16 +303,27 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 myUserId = user.uid;
-                console.log("Usuario autenticado:", myUserId);
                 authStatusDiv.textContent = 'Conectado. Puedes crear o unirte a una sala.';
                 createRoomBtn.disabled = false;
                 joinRoomBtn.disabled = false;
             } else {
-                console.log("No hay usuario, intentando iniciar sesión anónimamente.");
-                signInAnonymously(auth).catch(error => {
-                    console.error("Error al iniciar sesión anónimamente:", error);
-                    authStatusDiv.textContent = 'Error de conexión. Intenta recargar la página.';
-                });
+                console.log("No hay usuario. Intentando iniciar sesión anónimamente...");
+                authStatusDiv.textContent = 'Autenticando...';
+                // Usar el token personalizado si está disponible, de lo contrario, usar inicio de sesión anónimo.
+                if (initialAuthToken) {
+                    signInWithCustomToken(auth, initialAuthToken).catch(error => {
+                        console.error("Error al iniciar sesión con token personalizado:", error);
+                        signInAnonymously(auth).catch(error => {
+                            console.error("Error al iniciar sesión anónimamente:", error);
+                            authStatusDiv.textContent = 'Error de conexión. Intenta recargar la página.';
+                        });
+                    });
+                } else {
+                    signInAnonymously(auth).catch(error => {
+                        console.error("Error al iniciar sesión anónimamente:", error);
+                        authStatusDiv.textContent = 'Error de conexión. Intenta recargar la página.';
+                    });
+                }
             }
         });
 
