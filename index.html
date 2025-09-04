@@ -6,6 +6,453 @@
     <title>Impostor Futbolero</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Establecer el nivel de registro para depuración
+        setLogLevel('debug');
+
+        // Variables globales del entorno de Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Configuración e inicialización de Firebase ---
+        let db;
+        let auth;
+        let userId = null;
+        let userName = null;
+        let roomDocRef = null;
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            console.log("Firebase inicializado con éxito.");
+        } catch (error) {
+            console.error("Error al inicializar Firebase:", error);
+        }
+
+        const roomsCollectionName = 'rooms';
+
+        // --- Elementos de la UI ---
+        const loadingScreen = document.getElementById('loadingScreen');
+        const homeScreen = document.getElementById('homeScreen');
+        const lobbyScreen = document.getElementById('lobbyScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const votingScreen = document.getElementById('votingScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const userNameInput = document.getElementById('userNameInput');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomInput = document.getElementById('joinRoomInput');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const lobbyPlayersList = document.getElementById('lobbyPlayersList');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const roleCard = document.getElementById('roleCard');
+        const votingPlayersList = document.getElementById('votingPlayersList');
+        const voteTimerDisplay = document.getElementById('voteTimerDisplay');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+        const finalPlayersList = document.getElementById('finalPlayersList');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const modal = document.getElementById('modal');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const callVoteBtn = document.getElementById('callVoteBtn');
+        const gamePlayersList = document.getElementById('gamePlayersList');
+
+        
+        let currentRoomId = null;
+        let userRole = null;
+        let hasVoted = false;
+        let timerIntervalId = null;
+
+        // Función para mostrar una pantalla
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        // Función para mostrar un mensaje modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+        }
+        
+        // Manejador de clic para cerrar el modal
+        modalCloseBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // --- Lógica de Autenticación y Carga ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("Usuario autenticado:", userId);
+                userIdDisplay.textContent = `ID de Usuario: ${userId}`;
+                userName = localStorage.getItem('userName');
+                if (userName) {
+                    userNameInput.value = userName;
+                }
+                showScreen('homeScreen');
+            } else {
+                console.log("Usuario no autenticado, iniciando sesión anónima...");
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error en la autenticación:", error);
+                    showModal("No se pudo iniciar sesión. Por favor, recarga la página.");
+                }
+            }
+        });
+
+        // --- Lógica del Juego ---
+        createRoomBtn.addEventListener('click', async () => {
+            userName = userNameInput.value.trim();
+            if (!userName) {
+                showModal("Por favor, ingresa un nombre de usuario.");
+                return;
+            }
+            localStorage.setItem('userName', userName);
+
+            try {
+                const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', roomsCollectionName, roomCode);
+                
+                await setDoc(roomDocRef, {
+                    host: { userId: userId, name: userName },
+                    players: [{ userId: userId, name: userName, isEliminated: false }],
+                    status: 'lobby',
+                    votes: {},
+                    createdAt: new Date()
+                });
+
+                currentRoomId = roomCode;
+                console.log("Sala creada con ID:", currentRoomId);
+                subscribeToRoomUpdates(currentRoomId);
+                showScreen('lobbyScreen');
+            } catch (error) {
+                console.error("Error al crear la sala:", error);
+                showModal("No se pudo crear la sala. Inténtalo de nuevo.");
+            }
+        });
+
+        joinRoomBtn.addEventListener('click', async () => {
+            userName = userNameInput.value.trim();
+            if (!userName) {
+                showModal("Por favor, ingresa un nombre de usuario.");
+                return;
+            }
+            localStorage.setItem('userName', userName);
+
+            const roomCode = joinRoomInput.value.trim().toUpperCase();
+            if (!roomCode) {
+                showModal("Por favor, ingresa un código de sala.");
+                return;
+            }
+
+            roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', roomsCollectionName, roomCode);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomDocForTxn = await transaction.get(roomDocRef);
+                    if (!roomDocForTxn.exists()) {
+                        throw "La sala no existe.";
+                    }
+                    const roomData = roomDocForTxn.data();
+
+                    if (roomData.status !== 'lobby') {
+                        throw "La sala ya ha empezado el juego.";
+                    }
+                    
+                    const players = roomData.players;
+                    if (!players.find(p => p.userId === userId)) {
+                        const updatedPlayers = [...players, { userId: userId, name: userName, isEliminated: false }];
+                        transaction.update(roomDocRef, { players: updatedPlayers });
+                    }
+                    currentRoomId = roomCode;
+                    console.log("Unido a la sala:", currentRoomId);
+                });
+                subscribeToRoomUpdates(currentRoomId);
+                showScreen('lobbyScreen');
+            } catch (error) {
+                console.error("Error al unirse a la sala:", error);
+                showModal("No se pudo unir a la sala. Verifica el código e inténtalo de nuevo.");
+            }
+        });
+
+        // Suscribirse a las actualizaciones de la sala en tiempo real
+        function subscribeToRoomUpdates(roomCode) {
+            roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', roomsCollectionName, roomCode);
+            onSnapshot(roomDocRef, (doc) => {
+                if (doc.exists()) {
+                    const roomData = doc.data();
+                    if (roomData.status === 'lobby') {
+                        updateLobbyUI(roomData);
+                    } else if (roomData.status === 'in_game') {
+                        assignAndShowRole(roomData);
+                    } else if (roomData.status === 'voting') {
+                        showVotingScreen(roomData);
+                    } else if (roomData.status === 'game_over') {
+                        showGameOver(roomData);
+                    }
+                } else {
+                    showModal("La sala ha sido eliminada.");
+                    showScreen('homeScreen');
+                }
+            }, (error) => {
+                console.error("Error al escuchar la sala:", error);
+                showModal("Se perdió la conexión. Inténtalo de nuevo.");
+                showScreen('homeScreen');
+            });
+        }
+        
+        // Actualizar la UI del lobby
+        function updateLobbyUI(roomData) {
+            roomCodeDisplay.textContent = currentRoomId;
+            lobbyPlayersList.innerHTML = '';
+            roomData.players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player.name;
+                li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                if (player.userId === roomData.host.userId) {
+                    li.textContent += ' (Anfitrión)';
+                    li.classList.add('bg-yellow-600', 'font-bold');
+                }
+                lobbyPlayersList.appendChild(li);
+            });
+
+            if (roomData.host.userId === userId && roomData.players.length >= 2) {
+                startGameBtn.classList.remove('hidden');
+            } else {
+                startGameBtn.classList.add('hidden');
+            }
+            showScreen('lobbyScreen');
+        }
+        
+        startGameBtn.addEventListener('click', async () => {
+             await runTransaction(db, async (transaction) => {
+                const roomDocForTxn = await transaction.get(roomDocRef);
+                if (!roomDocForTxn.exists()) {
+                    throw "Document does not exist!";
+                }
+                const roomData = roomDocForTxn.data();
+
+                if (roomData.players.length < 2) {
+                    showModal("Necesitas al menos 2 jugadores para empezar el juego.");
+                    return;
+                }
+                
+                // Asignar roles aleatoriamente
+                const players = [...roomData.players];
+                const impostorIndex = Math.floor(Math.random() * players.length);
+                const updatedPlayers = players.map((player, index) => {
+                    return { ...player, role: index === impostorIndex ? 'Impostor' : 'Futbolero', isEliminated: false };
+                });
+
+                transaction.update(roomDocRef, {
+                    players: updatedPlayers,
+                    status: 'in_game',
+                    votes: {},
+                    gameStartedAt: new Date()
+                });
+            });
+        });
+
+        // Asignar y mostrar el rol al usuario actual
+        function assignAndShowRole(roomData) {
+            const player = roomData.players.find(p => p.userId === userId);
+            if (player) {
+                userRole = player.role;
+                roleCard.innerHTML = `
+                    <h3 class="text-4xl font-bold mb-2">Tu rol es:</h3>
+                    <p class="text-6xl font-extrabold mb-4 ${userRole === 'Impostor' ? 'text-red-500' : 'text-green-500'}">
+                        ${userRole}
+                    </p>
+                    <p class="text-xl text-gray-400">
+                        ${userRole === 'Impostor' ? 'Tu objetivo es sabotear el partido. Evita que el juego termine correctamente.' : 'Tu objetivo es jugar y marcar un gol. ¡Atrapa al impostor!'}
+                    </p>
+                `;
+                showScreen('gameScreen');
+
+                // Mostrar la lista de jugadores en la pantalla de juego
+                gamePlayersList.innerHTML = '';
+                roomData.players.forEach(p => {
+                    const li = document.createElement('li');
+                    li.textContent = p.name;
+                    li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                    gamePlayersList.appendChild(li);
+                });
+            } else {
+                showModal("No se pudo encontrar tu rol en esta sala.");
+                showScreen('homeScreen');
+            }
+        }
+        
+        // Evento para llamar a la votación
+        callVoteBtn.addEventListener('click', async () => {
+            await setDoc(roomDocRef, { status: 'voting' }, { merge: true });
+        });
+
+        // Lógica de votación
+        function showVotingScreen(roomData) {
+            showScreen('votingScreen');
+            votingPlayersList.innerHTML = '';
+            hasVoted = roomData.votes[userId] !== undefined;
+
+            roomData.players.forEach(player => {
+                // Solo muestra jugadores que no están eliminados
+                if (!player.isEliminated) {
+                    const li = document.createElement('li');
+                    li.classList.add('flex', 'justify-between', 'items-center', 'p-2', 'bg-gray-700', 'rounded-lg', 'text-lg');
+                    li.innerHTML = `
+                        <span class="text-white">${player.name}</span>
+                        <button class="vote-btn btn btn-primary p-2 rounded-lg font-semibold text-sm ${hasVoted ? 'bg-gray-500 cursor-not-allowed' : ''}" data-player-id="${player.userId}" ${hasVoted ? 'disabled' : ''}>Votar</button>
+                    `;
+                    votingPlayersList.appendChild(li);
+                }
+            });
+
+            // Añadir el evento de clic a los botones de votar
+            // Un pequeño retraso para asegurar que los elementos del DOM se han renderizado
+            setTimeout(() => {
+                document.querySelectorAll('.vote-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        if (hasVoted) return;
+                        
+                        const votedPlayerId = e.target.getAttribute('data-player-id');
+                        await vote(votedPlayerId);
+                        
+                        document.querySelectorAll('.vote-btn').forEach(b => {
+                            b.disabled = true;
+                            b.classList.add('bg-gray-500', 'cursor-not-allowed');
+                        });
+                        showModal("Tu voto ha sido registrado.");
+                    });
+                });
+            }, 100);
+
+            // Temporizador para la votación
+            let timer = 10;
+            voteTimerDisplay.textContent = timer;
+            if (timerIntervalId) {
+                clearInterval(timerIntervalId);
+            }
+            timerIntervalId = setInterval(() => {
+                timer--;
+                voteTimerDisplay.textContent = timer;
+                if (timer <= 0) {
+                    clearInterval(timerIntervalId);
+                    processVotes(roomData.players);
+                }
+            }, 1000);
+        }
+        
+        async function vote(votedPlayerId) {
+            await runTransaction(db, async (transaction) => {
+                const roomDocForTxn = await transaction.get(roomDocRef);
+                const roomData = roomDocForTxn.data();
+                const votes = roomData.votes || {};
+                
+                // Actualiza el voto del usuario actual
+                votes[userId] = votedPlayerId;
+                
+                transaction.update(roomDocRef, { votes: votes });
+            });
+        }
+        
+        async function processVotes(players) {
+            const roomDoc = await getDoc(roomDocRef);
+            const roomData = roomDoc.data();
+            const votes = roomData.votes || {};
+
+            const voteCounts = {};
+            for (const voterId in votes) {
+                const votedPlayerId = votes[voterId];
+                voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] || 0) + 1;
+            }
+
+            let mostVotedPlayerId = null;
+            let maxVotes = 0;
+            for (const playerId in voteCounts) {
+                if (voteCounts[playerId] > maxVotes) {
+                    maxVotes = voteCounts[playerId];
+                    mostVotedPlayerId = playerId;
+                }
+            }
+            
+            let winner = 'Futboleros';
+            if (mostVotedPlayerId) {
+                const eliminatedPlayer = players.find(p => p.userId === mostVotedPlayerId);
+                if (eliminatedPlayer && eliminatedPlayer.role === 'Impostor') {
+                    winner = 'Futboleros';
+                } else {
+                    winner = 'Impostor';
+                }
+            } else {
+                 // Si no hubo votos, los futboleros ganan por defecto
+                 winner = 'Futboleros';
+            }
+
+            // Actualizar el estado del jugador eliminado en Firestore
+            if (mostVotedPlayerId) {
+                await runTransaction(db, async (transaction) => {
+                    const roomDocForTxn = await transaction.get(roomDocRef);
+                    const roomData = roomDocForTxn.data();
+                    const players = roomData.players;
+                    const updatedPlayers = players.map(p => {
+                        if (p.userId === mostVotedPlayerId) {
+                            return { ...p, isEliminated: true };
+                        }
+                        return p;
+                    });
+                    transaction.update(roomDocRef, { players: updatedPlayers });
+                });
+            }
+
+            await setDoc(roomDocRef, { status: 'game_over', winner: winner }, { merge: true });
+        }
+        
+        // Mostrar la pantalla de fin de juego
+        function showGameOver(roomData) {
+            if (roomData.winner === 'Impostor') {
+                gameOverMessage.textContent = '¡El Impostor ha ganado!';
+                gameOverMessage.classList.add('text-red-500');
+            } else {
+                gameOverMessage.textContent = '¡Los Futboleros han ganado!';
+                gameOverMessage.classList.add('text-green-500');
+            }
+            
+            finalPlayersList.innerHTML = '';
+            roomData.players.forEach(p => {
+                const li = document.createElement('li');
+                li.textContent = `${p.name} - ${p.role}`;
+                li.classList.add('p-2', 'bg-gray-700', 'rounded-lg', 'text-lg', 'text-white', 'text-center');
+                if (p.isEliminated) {
+                    li.classList.add('line-through', 'text-gray-400');
+                }
+                finalPlayersList.appendChild(li);
+            });
+            showScreen('gameOverScreen');
+            
+            // Reiniciar la partida automáticamente después de 10 segundos
+            setTimeout(async () => {
+                await setDoc(roomDocRef, {
+                    players: roomData.players.map(p => ({ userId: p.userId, name: p.name, isEliminated: false })),
+                    status: 'lobby',
+                    votes: {}
+                });
+            }, 10000);
+        }
+        
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -28,584 +475,89 @@
             background-color: #2E2E2E;
             border: 1px solid #444;
             color: #E0E0E0;
+            padding: 1rem;
+            border-radius: 0.75rem;
         }
         .btn {
             transition: transform 0.2s, background-color 0.2s;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
+        .btn-primary {
+            background-color: #007BFF;
+            color: #fff;
+        }
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
-        }
-        .btn-primary {
-            background-color: #2196F3;
-            color: white;
         }
         .btn-primary:hover {
-            background-color: #1769aa;
+            background-color: #0056b3;
         }
-        .btn-secondary {
-            background-color: #4CAF50;
-            color: white;
+        .role-card {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            border: 2px solid;
+            border-image: linear-gradient(45deg, #FFD700, #FFA500) 1;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            text-align: center;
         }
-        .btn-secondary:hover {
-            background-color: #388e3c;
+        #userIdDisplay {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            color: #888;
         }
-        .player-list-item {
-            background-color: #2e2e2e;
-        }
-        .impostor-text {
-            color: #f44336;
-        }
-        .crewmate-text {
-            color: #4CAF50;
-        }
-        .eliminated-player {
-            opacity: 0.5;
-            text-decoration: line-through;
-        }
-        .game-over-modal {
+        #modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.7);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 100;
         }
+        .modal-content {
+            background-color: #1E1E1E;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200">
-
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCumowABsEKfX_js3s0KjdIGi0Oor6MXvA",
-            authDomain: "impostor-futbolero-online.firebaseapp.com",
-            projectId: "impostor-futbolero-online",
-            storageBucket: "impostor-futbolero-online.firebasestorage.app",
-            messagingSenderId: "1067586840575",
-            appId: "1:1067586840575:web:32889c085f7cf461bfa9ca",
-            measurementId: "G-W7NY2T2V2C"
-        };
-        
-        let app, db, auth;
-        let userId = null;
-        let gameId = null;
-        let isHost = false;
-        let gameState = { state: 'loading' };
-        let unsubscribeGame = null;
-
-        const footballPlayers = [
-            { name: "Lionel Messi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Messi" },
-            { name: "Cristiano Ronaldo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldo" },
-            { name: "Kylian Mbappé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mbappe" },
-            { name: "Erling Haaland", image: "https://placehold.co/400x400/2196F3/ffffff?text=Haaland" },
-            { name: "Neymar Jr.", image: "https://placehold.co/400x400/2196F3/ffffff?text=Neymar" },
-            { name: "Mohamed Salah", image: "https://placehold.co/400x400/2196F3/ffffff?text=Salah" },
-            { name: "Kevin De Bruyne", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Bruyne" },
-            { name: "Karim Benzema", image: "https://placehold.co/400x400/2196F3/ffffff?text=Benzema" },
-            { name: "Robert Lewandowski", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lewandowski" },
-            { name: "Harry Kane", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kane" },
-            { name: "Vinícius Júnior", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vinicius" },
-            { name: "Luka Modrić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Modric" },
-            { name: "Sadio Mané", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mane" },
-            { name: "Antoine Griezmann", image: "https://placehold.co/400x400/2196F3/ffffff?text=Griezmann" },
-            { name: "Jude Bellingham", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bellingham" },
-            { name: "Phil Foden", image: "https://placehold.co/400x400/2196F3/ffffff?text=Foden" },
-            { name: "Bukayo Saka", image: "https://placehold.co/400x400/2196F3/ffffff?text=Saka" },
-            { name: "Jamal Musiala", image: "https://placehold.co/400x400/2196F3/ffffff?text=Musiala" },
-            { name: "Federico Valverde", image: "https://placehold.co/400x400/2196F3/ffffff?text=Valverde" },
-            { name: "Casemiro", image: "https://placehold.co/400x400/2196F3/ffffff?text=Casemiro" },
-            { name: "Toni Kroos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kroos" },
-            { name: "Luka Modric", image: "https://placehold.co/400x400/2196F3/ffffff?text=Modric" },
-            { name: "Declan Rice", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rice" },
-            { name: "Virgil van Dijk", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Dijk" },
-            { name: "Rúben Dias", image: "https://placehold.co/400x400/2196F3/ffffff?text=Dias" },
-            { name: "Marquinhos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Marquinhos" },
-            { name: "Thibaut Courtois", image: "https://placehold.co/400x400/2196F3/ffffff?text=Courtois" },
-            { name: "Alisson Becker", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alisson" },
-            { name: "Manuel Neuer", image: "https://placehold.co/400x400/2196F3/ffffff?text=Neuer" },
-            { name: "Marc-André ter Stegen", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ter+Stegen" },
-            { name: "Ederson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ederson" },
-            { name: "Heung-min Son", image: "https://placehold.co/400x400/2196F3/ffffff?text=Son" },
-            { name: "Bruno Fernandes", image: "https://placehold.co/400x400/2196F3/ffffff?text=Fernandes" },
-            { name: "Bernardo Silva", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bernardo" },
-            { name: "Jack Grealish", image: "https://placehold.co/400x400/2196F3/ffffff?text=Grealish" },
-            { name: "Álvaro Morata", image: "https://placehold.co/400x400/2196F3/ffffff?text=Morata" },
-            { name: "Dusan Vlahovic", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vlahovic" },
-            { name: "Lautaro Martínez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lautaro" },
-            { name: "Romelu Lukaku", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lukaku" },
-            { name: "Victor Osimhen", image: "https://placehold.co/400x400/2196F3/ffffff?text=Osimhen" },
-            { name: "Rafael Leão", image: "https://placehold.co/400x400/2196F3/ffffff?text=Leao" },
-            { name: "Pedri", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pedri" },
-            { name: "Gavi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gavi" },
-            { name: "Frenkie de Jong", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Jong" },
-            { name: "Jules Koundé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kounde" },
-            { name: "Ronald Araújo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Araujo" },
-            { name: "Joshua Kimmich", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kimmich" },
-            { name: "Thomas Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Muller" },
-            { name: "Serge Gnabry", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gnabry" },
-            { name: "Leon Goretzka", image: "https://placehold.co/400x400/2196F3/ffffff?text=Goretzka" },
-            { name: "Kingsley Coman", image: "https://placehold.co/400x400/2196F3/ffffff?text=Coman" },
-            { name: "N'Golo Kanté", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kante" },
-            { name: "Paul Pogba", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pogba" },
-            { name: "Ousmane Dembélé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Dembélé" },
-            { name: "Olivier Giroud", image: "https://placehold.co/400x400/2196F3/ffffff?text=Giroud" },
-            { name: "Hugo Lloris", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lloris" },
-            { name: "Harry Maguire", image: "https://placehold.co/400x400/2196F3/ffffff?text=Maguire" },
-            { name: "Raheem Sterling", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sterling" },
-            { name: "Jadon Sancho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sancho" },
-            { name: "Kai Havertz", image: "https://placehold.co/400x400/2196F3/ffffff?text=Havertz" },
-            { name: "Kai Havertz", image: "https://placehold.co/400x400/2196F3/ffffff?text=Havertz" },
-            { name: "Mason Mount", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mount" },
-            { name: "Trent Alexander-Arnold", image: "https://placehold.co/400x400/2196F3/ffffff?text=TAA" },
-            { name: "Andrew Robertson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Robertson" },
-            { name: "Fabinho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Fabinho" },
-            { name: "Jorginho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Jorginho" },
-            { name: "Dusan Tadic", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tadic" },
-            { name: "João Félix", image: "https://placehold.co/400x400/2196F3/ffffff?text=Félix" },
-            { name: "Memphis Depay", image: "https://placehold.co/400x400/2196F3/ffffff?text=Depay" },
-            { name: "Frenkie de Jong", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Jong" },
-            { name: "Cody Gakpo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gakpo" },
-            { name: "Matthijs de Ligt", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Ligt" },
-            { name: "Achraf Hakimi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hakimi" },
-            { name: "Sadio Mané", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mané" },
-            { name: "Hakim Ziyech", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ziyech" },
-            { name: "Riyad Mahrez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mahrez" },
-            { name: "Edouard Mendy", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mendy" },
-            { name: "Patrik Schick", image: "https://placehold.co/400x400/2196F3/ffffff?text=Schick" },
-            { name: "Zlatan Ibrahimović", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ibrahimović" },
-            { name: "Ciro Immobile", image: "https://placehold.co/400x400/2196F3/ffffff?text=Immobile" },
-            { name: "Federico Chiesa", image: "https://placehold.co/400x400/2196F3/ffffff?text=Chiesa" },
-            { name: "Marco Verratti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Verratti" },
-            { name: "Gianluigi Donnarumma", image: "https://placehold.co/400x400/2196F3/ffffff?text=Donnarumma" },
-            { name: "Leonardo Bonucci", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bonucci" },
-            { name: "Giorgio Chiellini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Chiellini" },
-            { name: "Paulo Dybala", image: "https://placehold.co/400x400/2196F3/ffffff?text=Dybala" },
-            { name: "Ángel Di María", image: "https://placehold.co/400x400/2196F3/ffffff?text=Di+María" },
-            { name: "Lautaro Martínez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lautaro" },
-            { name: "Edinson Cavani", image: "https://placehold.co/400x400/2196F3/ffffff?text=Cavani" },
-            { name: "Luis Suárez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Suárez" },
-            { name: "Federico Valverde", image: "https://placehold.co/400x400/2196F3/ffffff?text=Valverde" },
-            { name: "James Rodríguez", image: "https://placehold.co/400x400/2196F3/ffffff?text=James" },
-            { name: "Radamel Falcao", image: "https://placehold.co/400x400/2196F3/ffffff?text=Falcao" },
-            { name: "Guillermo Ochoa", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ochoa" },
-            { name: "Raúl Jiménez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Jiménez" },
-            { name: "Hirving Lozano", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lozano" },
-            { name: "Christian Pulisic", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pulisic" },
-            { name: "Weston McKennie", image: "https://placehold.co/400x400/2196F3/ffffff?text=McKennie" },
-            { name: "Alphonso Davies", image: "https://placehold.co/400x400/2196F3/ffffff?text=Davies" },
-            { name: "Jonathan David", image: "https://placehold.co/400x400/2196F3/ffffff?text=David" },
-            { name: "Salomón Rondón", image: "https://placehold.co/400x400/F44336/ffffff?text=Rondón" },
-            { name: "Juan Arango", image: "https://placehold.co/400x400/F44336/ffffff?text=Arango" },
-            { name: "Yeferson Soteldo", image: "https://placehold.co/400x400/F44336/ffffff?text=Soteldo" },
-            { name: "Josef Martínez", image: "https://placehold.co/400x400/F44336/ffffff?text=Martínez" },
-            { name: "Giancarlo González", image: "https://placehold.co/400x400/F44336/ffffff?text=González" },
-            { name: "Claudio Bravo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bravo" },
-            { name: "Alexis Sánchez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sánchez" },
-            { name: "Arturo Vidal", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vidal" },
-            { name: "Gary Medel", image: "https://placehold.co/400x400/2196F3/ffffff?text=Medel" },
-            { name: "Sergio Agüero", image: "https://placehold.co/400x400/2196F3/ffffff?text=Agüero" },
-            { name: "Ángel Di María", image: "https://placehold.co/400x400/2196F3/ffffff?text=Di+María" },
-            { name: "Gerard Piqué", image: "https://placehold.co/400x400/2196F3/ffffff?text=Piqué" },
-            { name: "Sergio Busquets", image: "https://placehold.co/400x400/2196F3/ffffff?text=Busquets" },
-            { name: "Andrés Iniesta", image: "https://placehold.co/400x400/2196F3/ffffff?text=Iniesta" },
-            { name: "Xavi Hernández", image: "https://placehold.co/400x400/2196F3/ffffff?text=Xavi" },
-            { name: "Carles Puyol", image: "https://placehold.co/400x400/2196F3/ffffff?text=Puyol" },
-            { name: "Iker Casillas", image: "https://placehold.co/400x400/2196F3/ffffff?text=Casillas" },
-            { name: "Fernando Torres", image: "https://placehold.co/400x400/2196F3/ffffff?text=Torres" },
-            { name: "David Villa", image: "https://placehold.co/400x400/2196F3/ffffff?text=Villa" },
-            { name: "Xabi Alonso", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alonso" },
-            { name: "Raúl González", image: "https://placehold.co/400x400/2196F3/ffffff?text=Raúl" },
-            { name: "Sergio Ramos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ramos" },
-            { name: "Gareth Bale", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bale" },
-            { name: "Marcelo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Marcelo" },
-            { name: "Isco", image: "https://placehold.co/400x400/2196F3/ffffff?text=Isco" },
-            { name: "Marco Asensio", image: "https://placehold.co/400x400/2196F3/ffffff?text=Asensio" },
-            { name: "Eden Hazard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hazard" },
-            { name: "Dries Mertens", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mertens" },
-            { name: "Kevin De Bruyne", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Bruyne" },
-            { name: "Vincent Kompany", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kompany" },
-            { name: "Romelu Lukaku", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lukaku" },
-            { name: "Thibaut Courtois", image: "https://placehold.co/400x400/2196F3/ffffff?text=Courtois" },
-            { name: "Gianluigi Buffon", image: "https://placehold.co/400x400/2196F3/ffffff?text=Buffon" },
-            { name: "Andrea Pirlo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pirlo" },
-            { name: "Francesco Totti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Totti" },
-            { name: "Paolo Maldini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Maldini" },
-            { name: "Alessandro Del Piero", image: "https://placehold.co/400x400/2196F3/ffffff?text=Del+Piero" },
-            { name: "Kaká", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kaká" },
-            { name: "Rivaldo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rivaldo" },
-            { name: "Ronaldo Nazário", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldo" },
-            { name: "Garrincha", image: "https://placehold.co/400x400/2196F3/ffffff?text=Garrincha" },
-            { name: "Zico", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zico" },
-            { name: "Socrates", image: "https://placehold.co/400x400/2196F3/ffffff?text=Socrates" },
-            { name: "Roberto Carlos", image: "https://placehold.co/400x400/2196F3/ffffff?text=R.+Carlos" },
-            { name: "Ronaldinho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ronaldinho" },
-            { name: "Frank Lampard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lampard" },
-            { name: "Steven Gerrard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gerrard" },
-            { name: "Wayne Rooney", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rooney" },
-            { name: "David Beckham", image: "https://placehold.co/400x400/2196F3/ffffff?text=Beckham" },
-            { name: "Paul Scholes", image: "https://placehold.co/400x400/2196F3/ffffff?text=Scholes" },
-            { name: "Bobby Charlton", image: "https://placehold.co/400x400/2196F3/ffffff?text=B.+Charlton" },
-            { name: "Thierry Henry", image: "https://placehold.co/400x400/2196F3/ffffff?text=Henry" },
-            { name: "Dennis Bergkamp", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bergkamp" },
-            { name: "Patrick Vieira", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vieira" },
-            { name: "Didier Drogba", image: "https://placehold.co/400x400/2196F3/ffffff?text=Drogba" },
-            { name: "Zinedine Zidane", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zidane" },
-            { name: "Michel Platini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Platini" },
-            { name: "Marco van Basten", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Basten" },
-            { name: "Johan Cruyff", image: "https://placehold.co/400x400/2196F3/ffffff?text=Cruyff" },
-            { name: "Franz Beckenbauer", image: "https://placehold.co/400x400/2196F3/ffffff?text=Beckenbauer" },
-            { name: "Gerd Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Müller" },
-            { name: "Diego Maradona", image: "https://placehold.co/400x400/2196F3/ffffff?text=Maradona" },
-            { name: "Pelé", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pelé" },
-            { name: "Eusébio", image: "https://placehold.co/400x400/2196F3/ffffff?text=Eusébio" },
-            { name: "Ferenc Puskás", image: "https://placehold.co/400x400/2196F3/ffffff?text=Puskás" },
-            { name: "Alfredo Di Stéfano", image: "https://placehold.co/400x400/2196F3/ffffff?text=Di+Stéfano" },
-            { name: "Lev Yashin", image: "https://placehold.co/400x400/2196F3/ffffff?text=Yashin" },
-            { name: "George Best", image: "https://placehold.co/400x400/2196F3/ffffff?text=Best" },
-            { name: "Diego Forlán", image: "https://placehold.co/400x400/2196F3/ffffff?text=Forlán" },
-            { name: "Ivan Rakitić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rakitić" },
-            { name: "Mario Mandžukić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mandžukić" },
-            { name: "Arjen Robben", image: "https://placehold.co/400x400/2196F3/ffffff?text=Robben" },
-            { name: "Wesley Sneijder", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sneijder" },
-            { name: "Robin van Persie", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Persie" },
-            { name: "Gareth Bale", image: "https://placehold.co/400x400/2196F3/ffffff?text=Bale" },
-            { name: "Ryan Giggs", image: "https://placehold.co/400x400/2196F3/ffffff?text=Giggs" },
-            { name: "Zlatan Ibrahimović", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ibrahimović" },
-            { name: "David Alaba", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alaba" },
-            { name: "Thomas Müller", image: "https://placehold.co/400x400/2196F3/ffffff?text=Müller" },
-            { name: "Marco Reus", image: "https://placehold.co/400x400/2196F3/ffffff?text=Reus" },
-            { name: "Toni Kroos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Kroos" },
-            { name: "Mesut Özil", image: "https://placehold.co/400x400/2196F3/ffffff?text=Özil" },
-            { name: "Miroslav Klose", image: "https://placehold.co/400x400/2196F3/ffffff?text=Klose" },
-            { name: "Lukas Podolski", image: "https://placehold.co/400x400/2196F3/ffffff?text=Podolski" },
-            { name: "Philipp Lahm", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lahm" },
-            { name: "Sergio Agüero", image: "https://placehold.co/400x400/2196F3/ffffff?text=Agüero" },
-            { name: "Alexis Sánchez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sánchez" },
-            { name: "Arturo Vidal", image: "https://placehold.co/400x400/2196F3/ffffff?text=Vidal" },
-            { name: "James Rodríguez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rodríguez" },
-            { name: "Radamel Falcao", image: "https://placehold.co/400x400/2196F3/ffffff?text=Falcao" },
-            { name: "Luis Suárez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Suárez" },
-            { name: "Edinson Cavani", image: "https://placehold.co/400x400/2196F3/ffffff?text=Cavani" },
-            { name: "Carlos Tevez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tévez" },
-            { name: "Javier Zanetti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zanetti" },
-            { name: "Diego Simeone", image: "https://placehold.co/400x400/2196F3/ffffff?text=Simeone" },
-            { name: "Gabriel Batistuta", image: "https://placehold.co/400x400/2196F3/ffffff?text=Batistuta" },
-            { name: "Sergio Busquets", image: "https://placehold.co/400x400/2196F3/ffffff?text=Busquets" },
-            { name: "Thiago Alcántara", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alcántara" },
-            { name: "Álvaro Morata", image: "https://placehold.co/400x400/2196F3/ffffff?text=Morata" },
-            { name: "David de Gea", image: "https://placehold.co/400x400/2196F3/ffffff?text=De+Gea" },
-            { name: "Cesc Fàbregas", image: "https://placehold.co/400x400/2196F3/ffffff?text=Fàbregas" },
-            { name: "Fernando Hierro", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hierro" },
-            { name: "Raúl Albiol", image: "https://placehold.co/400x400/2196F3/ffffff?text=Albiol" },
-            { name: "José Mourinho", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mourinho" },
-            { name: "Josep Guardiola", image: "https://placehold.co/400x400/2196F3/ffffff?text=Guardiola" },
-            { name: "Carlo Ancelotti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ancelotti" },
-            { name: "Arsène Wenger", image: "https://placehold.co/400x400/2196F3/ffffff?text=Wenger" },
-            { name: "Sir Alex Ferguson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ferguson" },
-            { name: "Jurgen Klopp", image: "https://placehold.co/400x400/2196F3/ffffff?text=Klopp" },
-            { name: "Mauricio Pochettino", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pochettino" },
-            { name: "Antonio Conte", image: "https://placehold.co/400x400/2196F3/ffffff?text=Conte" },
-            { name: "Luciano Spalletti", image: "https://placehold.co/400x400/2196F3/ffffff?text=Spalletti" },
-            { name: "Simone Inzaghi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Inzaghi" },
-            { name: "Xavi Hernández", image: "https://placehold.co/400x400/2196F3/ffffff?text=Xavi" },
-            { name: "Diego Simeone", image: "https://placehold.co/400x400/2196F3/ffffff?text=Simeone" },
-            { name: "Lionel Scaloni", image: "https://placehold.co/400x400/2196F3/ffffff?text=Scaloni" },
-            { name: "Gareth Southgate", image: "https://placehold.co/400x400/2196F3/ffffff?text=Southgate" },
-            { name: "Joachim Löw", image: "https://placehold.co/400x400/2196F3/ffffff?text=Löw" },
-            { name: "Didier Deschamps", image: "https://placehold.co/400x400/2196F3/ffffff?text=Deschamps" },
-            { name: "Tite", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tite" },
-            { name: "Luis Enrique", image: "https://placehold.co/400x400/2196F3/ffffff?text=L.+Enrique" },
-            { name: "Pep Guardiola", image: "https://placehold.co/400x400/2196F3/ffffff?text=Guardiola" },
-            { name: "Jürgen Klopp", image: "https://placehold.co/400x400/2196F3/ffffff?text=Klopp" },
-            { name: "Thomas Tuchel", image: "https://placehold.co/400x400/2196F3/ffffff?text=Tuchel" },
-            { name: "Erik ten Hag", image: "https://placehold.co/400x400/2196F3/ffffff?text=Ten+Hag" },
-            { name: "Roberto Mancini", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mancini" },
-            { name: "Rafa Benítez", image: "https://placehold.co/400x400/2196F3/ffffff?text=Benítez" },
-            { name: "Maurizio Sarri", image: "https://placehold.co/400x400/2196F3/ffffff?text=Sarri" },
-            { name: "Gennaro Gattuso", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gattuso" },
-            { name: "Frank Rijkaard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rijkaard" },
-            { name: "Carlo Mazzone", image: "https://placehold.co/400x400/2196F3/ffffff?text=Mazzone" },
-            { name: "Louis van Gaal", image: "https://placehold.co/400x400/2196F3/ffffff?text=Van+Gaal" },
-            { name: "Vicente del Bosque", image: "https://placehold.co/400x400/2196F3/ffffff?text=Del+Bosque" },
-            { name: "Fernando Santos", image: "https://placehold.co/400x400/2196F3/ffffff?text=Santos" },
-            { name: "Marcello Lippi", image: "https://placehold.co/400x400/2196F3/ffffff?text=Lippi" },
-            { name: "Fabio Capello", image: "https://placehold.co/400x400/2196F3/ffffff?text=Capello" },
-            { name: "Giovanni Trapattoni", image: "https://placehold.co/400x400/2196F3/ffffff?text=Trapattoni" },
-            { name: "Sven-Göran Eriksson", image: "https://placehold.co/400x400/2196F3/ffffff?text=Eriksson" },
-            { name: "Guus Hiddink", image: "https://placehold.co/400x400/2196F3/ffffff?text=Hiddink" },
-            { name: "Dick Advocaat", image: "https://placehold.co/400x400/2196F3/ffffff?text=Advocaat" },
-            { name: "Fatih Terim", image: "https://placehold.co/400x400/2196F3/ffffff?text=Terim" },
-            { name: "Vahid Halilhodžić", image: "https://placehold.co/400x400/2196F3/ffffff?text=Halilhodžić" },
-            { name: "Hansi Flick", image: "https://placehold.co/400x400/2196F3/ffffff?text=Flick" },
-            { name: "Julian Nagelsmann", image: "https://placehold.co/400x400/2196F3/ffffff?text=Nagelsmann" },
-            { name: "Brendan Rodgers", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rodgers" },
-            { name: "Unai Emery", image: "https://placehold.co/400x400/2196F3/ffffff?text=Emery" },
-            { name: "Steven Gerrard", image: "https://placehold.co/400x400/2196F3/ffffff?text=Gerrard" },
-            { name: "Wayne Rooney", image: "https://placehold.co/400x400/2196F3/ffffff?text=Rooney" },
-            { name: "Andrea Pirlo", image: "https://placehold.co/400x400/2196F3/ffffff?text=Pirlo" },
-            { name: "Xabi Alonso", image: "https://placehold.co/400x400/2196F3/ffffff?text=Alonso" },
-            { name: "Zinedine Zidane", image: "https://placehold.co/400x400/2196F3/ffffff?text=Zidane" }
-        ];
-
-        // UI elements
-        const loadingScreen = document.getElementById('loadingScreen');
-        const loginScreen = document.getElementById('loginScreen');
-        const lobbyScreen = document.getElementById('lobbyScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const gameOverScreen = document.getElementById('gameOverScreen');
-        const playerNameInput = document.getElementById('playerNameInput');
-        const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomInput = document.getElementById('joinRoomInput');
-        const joinRoomBtn = document.getElementById('joinRoomBtn');
-        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-        const lobbyPlayersList = document.getElementById('lobbyPlayersList');
-        const gamePlayersList = document.getElementById('gamePlayersList');
-        const startGameBtn = document.getElementById('startGameBtn');
-        const roleCard = document.getElementById('roleCard');
-        const gameOverMessage = document.getElementById('gameOverMessage');
-        const newGameBtn = document.getElementById('newGameBtn');
-
-        function showModal(message) {
-            const modal = document.createElement('div');
-            modal.className = 'game-over-modal';
-            modal.innerHTML = `
-                <div class="card bg-gray-800 text-white p-6 rounded-2xl text-center">
-                    <p class="text-xl font-semibold mb-4">${message}</p>
-                    <button id="modalCloseBtn" class="btn btn-primary px-4 py-2">OK</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            document.getElementById('modalCloseBtn').onclick = () => {
-                document.body.removeChild(modal);
-            };
-        }
-
-        function initializeFirebase() {
-            try {
-                if (!firebaseConfig.projectId) {
-                    showModal("La configuración de Firebase está vacía. La partida no puede iniciar. Debes pegar tu configuración de Firebase en el código.");
-                    return;
-                }
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                signInAnonymously(auth).then(() => {
-                    userId = auth.currentUser.uid;
-                    showScreen(loginScreen);
-                });
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                showModal("Error fatal al inicializar la aplicación. La partida no puede iniciar. Revisa la consola para más detalles.");
-            }
-        }
-
-        function showScreen(screen) {
-            loadingScreen.classList.add('hidden');
-            loginScreen.classList.add('hidden');
-            lobbyScreen.classList.add('hidden');
-            gameScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            screen.classList.remove('hidden');
-        }
-
-        async function createRoom() {
-            const playerName = playerNameInput.value.trim();
-            if (!playerName) { showModal("Por favor, introduce tu nombre."); return; }
-            gameId = Math.random().toString(36).substring(2, 7).toUpperCase();
-            const gameDocRef = doc(db, `games`, gameId);
-            const playerInfo = { name: playerName, status: 'active', isHost: true, role: null };
-            const gameData = { state: 'lobby', hostId: userId, players: { [userId]: playerInfo }, chosenPlayer: null, chosenPlayerImage: null, impostorId: null };
-            try {
-                await setDoc(gameDocRef, gameData);
-                isHost = true;
-                listenToGameChanges();
-            } catch (e) { console.error("Error creating document: ", e); }
-        }
-
-        async function joinRoom() {
-            gameId = joinRoomInput.value.trim().toUpperCase();
-            const playerName = playerNameInput.value.trim();
-            if (!playerName) { showModal("Por favor, introduce tu nombre."); return; }
-            if (!gameId) { showModal("Por favor, introduce un código de sala."); return; }
-            const gameDocRef = doc(db, `games`, gameId);
-            const gameDoc = await getDoc(gameDocRef);
-            if (!gameDoc.exists() || gameDoc.data().state !== 'lobby') { showModal("Código de sala inválido o la partida ya ha comenzado."); return; }
-            const updates = {};
-            updates[`players.${userId}`] = { name: playerName, status: 'active', isHost: false, role: null };
-            await updateDoc(gameDocRef, updates);
-            isHost = false;
-            listenToGameChanges();
-        }
-
-        function listenToGameChanges() {
-            if (unsubscribeGame) { unsubscribeGame(); }
-            const gameDocRef = doc(db, `games`, gameId);
-            unsubscribeGame = onSnapshot(gameDocRef, (doc) => {
-                if (doc.exists()) { gameState = doc.data(); updateUI(); }
-                else { showModal("La sala del juego no existe. Volviendo a la pantalla principal."); setTimeout(() => location.reload(), 3000); }
-            }, (error) => {
-                console.error("Error listening to game state:", error);
-                showModal("Hubo un error al sincronizar con la partida. Por favor, intenta de nuevo.");
-            });
-        }
-
-        function updateUI() {
-            if (gameState.state === 'lobby') {
-                showScreen(lobbyScreen);
-                roomCodeDisplay.textContent = gameId;
-                renderPlayers(lobbyPlayersList, gameState.players, false);
-                const playerCount = Object.keys(gameState.players).length;
-                if (isHost) {
-                    startGameBtn.classList.remove('hidden');
-                    startGameBtn.disabled = playerCount < 3;
-                    startGameBtn.textContent = `Empezar Juego (${playerCount}/3+)`;
-                } else { startGameBtn.classList.add('hidden'); }
-            } else if (gameState.state === 'in-game') { showScreen(gameScreen); renderGameUI(); }
-            else if (gameState.state === 'game-over') {
-                showScreen(gameOverScreen);
-                const winnerText = gameState.impostorId ? (gameState.players[gameState.impostorId].status === 'eliminated' ? '¡La tripulación gana!' : '¡El impostor gana!') : 'El juego ha terminado.';
-                gameOverMessage.textContent = winnerText;
-                if (isHost) { newGameBtn.classList.remove('hidden'); } else { newGameBtn.classList.add('hidden'); }
-            }
-        }
-
-        function renderPlayers(listElement, playersData, isGameScreen) {
-            listElement.innerHTML = '';
-            for (const playerId in playersData) {
-                const player = playersData[playerId];
-                const li = document.createElement('li');
-                li.className = `player-list-item flex justify-between items-center p-3 rounded-xl mb-2`;
-                li.textContent = `${player.name}${player.isHost ? ' (Anfitrión)' : ''}`;
-                if (player.status === 'eliminated') { li.classList.add('eliminated-player'); }
-                if (isGameScreen && isHost && player.status === 'active' && playerId !== userId) {
-                    const eliminateBtn = document.createElement('button');
-                    eliminateBtn.textContent = 'Eliminar';
-                    eliminateBtn.className = 'btn bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-lg';
-                    eliminateBtn.onclick = () => eliminatePlayer(playerId);
-                    li.appendChild(eliminateBtn);
-                }
-                listElement.appendChild(li);
-            }
-        }
-
-        async function startGame() {
-            if (!isHost || Object.keys(gameState.players).length < 3) return;
-            const playerIds = Object.keys(gameState.players);
-            const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
-            const chosenPlayer = footballPlayers[Math.floor(Math.random() * footballPlayers.length)];
-            const updates = { state: 'in-game', impostorId: impostorId, chosenPlayer: chosenPlayer.name, chosenPlayerImage: chosenPlayer.image };
-            const updatedPlayers = {};
-            for (const playerId of playerIds) {
-                updatedPlayers[playerId] = { ...gameState.players[playerId], role: (playerId === impostorId) ? 'impostor' : 'crewmate' };
-            }
-            updates.players = updatedPlayers;
-            try { await updateDoc(doc(db, `games`, gameId), updates); }
-            catch (e) { console.error("Error starting game: ", e); showModal("Error al iniciar el juego. Inténtalo de nuevo."); }
-        }
-
-        function renderGameUI() {
-            const myPlayer = gameState.players[userId];
-            const roleContainer = document.getElementById('roleCard');
-            roleContainer.innerHTML = '';
-            const h2 = document.createElement('h2');
-            h2.className = 'text-3xl font-bold mb-4';
-            if (myPlayer.role === 'impostor') {
-                h2.textContent = 'Eres el IMPOSTOR';
-                h2.className += ' impostor-text';
-                const impostorText = document.createElement('p');
-                impostorText.className = 'text-center text-lg';
-                impostorText.textContent = `Tu objetivo es no ser descubierto. Usa las preguntas para descubrir la identidad de la persona a la que imitas.`;
-                roleContainer.appendChild(h2);
-                roleContainer.appendChild(impostorText);
-            } else {
-                h2.textContent = 'Eres de la tripulación';
-                h2.className += ' crewmate-text';
-                const playerImage = document.createElement('img');
-                playerImage.src = gameState.chosenPlayerImage;
-                playerImage.alt = gameState.chosenPlayer;
-                playerImage.className = 'w-full max-w-sm rounded-xl mx-auto mb-4';
-                const playerName = document.createElement('p');
-                playerName.className = 'text-center text-2xl font-semibold';
-                playerName.textContent = gameState.chosenPlayer;
-                roleContainer.appendChild(h2);
-                roleContainer.appendChild(playerImage);
-                roleContainer.appendChild(playerName);
-            }
-            renderPlayers(gamePlayersList, gameState.players, true);
-        }
-
-        async function eliminatePlayer(playerIdToEliminate) {
-            if (!isHost) return;
-            const gameDocRef = doc(db, `games`, gameId);
-            const updates = {};
-            updates[`players.${playerIdToEliminate}.status`] = 'eliminated';
-            await updateDoc(gameDocRef, updates);
-            checkGameEnd();
-        }
-
-        function checkGameEnd() {
-            const livingPlayers = Object.keys(gameState.players).filter(id => gameState.players[id].status === 'active');
-            const impostorIsEliminated = gameState.players[gameState.impostorId].status === 'eliminated';
-            if (impostorIsEliminated) { endGame(); }
-            else if (livingPlayers.length <= 2) { endGame(); }
-        }
-
-        async function endGame() {
-            if (!isHost) return;
-            const gameDocRef = doc(db, `games`, gameId);
-            await updateDoc(gameDocRef, { state: 'game-over' });
-        }
-
-        async function startNewGame() {
-            if (!isHost) return;
-            const gameDocRef = doc(db, `games`, gameId);
-            try {
-                await setDoc(gameDocRef, {
-                    state: 'lobby', hostId: userId,
-                    players: { [userId]: { name: gameState.players[userId].name, status: 'active', isHost: true, role: null } },
-                    chosenPlayer: null, chosenPlayerImage: null, impostorId: null
-                });
-                isHost = true;
-            } catch (e) { console.error("Error creating new game: ", e); showModal("Error al crear una nueva partida."); }
-        }
-
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
-        createRoomBtn.addEventListener('click', createRoom);
-        joinRoomBtn.addEventListener('click', joinRoom);
-        startGameBtn.addEventListener('click', startGame);
-        newGameBtn.addEventListener('click', startNewGame);
-    </script>
-
-    <div id="loadingScreen" class="h-screen flex items-center justify-center">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center font-sans">
+    
+    <div id="loadingScreen" class="screen h-screen flex items-center justify-center">
         <h1 class="text-3xl font-bold animate-pulse">Cargando...</h1>
     </div>
 
-    <div id="loginScreen" class="hidden h-screen flex items-center justify-center">
-        <div class="container card text-center">
-            <h1 class="text-4xl font-bold mb-6">Impostor Futbolero</h1>
-            <input type="text" id="playerNameInput" placeholder="Introduce tu nombre" class="input-field w-full p-3 rounded-lg mb-4 text-center">
-            <div class="space-y-4 md:space-y-0 md:flex md:space-x-4">
-                <button id="createRoomBtn" class="btn btn-primary w-full md:w-1/2 p-3 rounded-lg font-semibold text-lg">Crear Sala</button>
-                <div class="w-full md:w-1/2 flex space-x-2">
-                    <input type="text" id="joinRoomInput" placeholder="Código de sala" class="input-field w-2/3 p-3 rounded-lg text-center uppercase">
-                    <button id="joinRoomBtn" class="btn btn-secondary w-1/3 p-3 rounded-lg font-semibold text-lg">Unirse</button>
+    <div id="homeScreen" class="screen hidden h-screen flex items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 class="text-3xl font-bold mb-4">Impostor Futbolero</h2>
+            <p class="mb-6 text-lg text-gray-400">¿Cómo te llamas?</p>
+            <input type="text" id="userNameInput" placeholder="Ingresa tu nombre..." class="input-field w-full mb-4">
+            <div class="space-y-4">
+                <button id="createRoomBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl">Crear Sala</button>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="joinRoomInput" placeholder="Código de sala..." class="input-field flex-grow p-4 rounded-lg text-lg text-center">
+                    <button id="joinRoomBtn" class="btn btn-primary p-4 rounded-lg font-semibold text-lg">Unirse</button>
                 </div>
             </div>
+            <p class="text-sm mt-4 text-gray-500">
+                Crea una sala para que tus amigos se unan o únete a una existente.
+            </p>
         </div>
     </div>
 
-    <div id="lobbyScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
+    <div id="lobbyScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
             <h2 class="text-3xl font-bold mb-4">Sala de Juego</h2>
             <p class="text-xl mb-4">Código: <span id="roomCodeDisplay" class="font-bold text-yellow-400"></span></p>
             <p class="text-lg mb-2">Jugadores:</p>
@@ -615,22 +567,43 @@
         </div>
     </div>
 
-    <div id="gameScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
+    <div id="gameScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
             <div id="roleCard" class="role-card"></div>
             <div class="mt-8 w-full">
-                <h3 class="text-2xl font-bold mb-4">Jugadores</h3>
+                <h3 class="text-2xl font-bold mb-4">Jugadores en la partida</h3>
                 <ul id="gamePlayersList" class="mb-6 space-y-2"></ul>
+            </div>
+            <button id="callVoteBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl mt-4">Llamar a votación</button>
+        </div>
+    </div>
+
+    <div id="votingScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 class="text-3xl font-bold mb-4">¡A Votar!</h2>
+            <p class="text-lg mb-2">Tiempo restante: <span id="voteTimerDisplay" class="font-bold">10</span>s</p>
+            <ul id="votingPlayersList" class="mb-6 space-y-2"></ul>
+        </div>
+    </div>
+
+    <div id="gameOverScreen" class="screen hidden h-screen flex flex-col items-center justify-center">
+        <div class="container card text-center p-8">
+            <h2 id="gameOverMessage" class="text-4xl font-extrabold mb-4"></h2>
+            <div class="mt-8 w-full">
+                <h3 class="text-2xl font-bold mb-4">Roles Finales</h3>
+                <ul id="finalPlayersList" class="mb-6 space-y-2"></ul>
             </div>
         </div>
     </div>
 
-    <div id="gameOverScreen" class="hidden h-screen flex flex-col items-center justify-center">
-        <div class="container card text-center">
-            <h2 id="gameOverMessage" class="text-4xl font-bold mb-4 text-center"></h2>
-            <button id="newGameBtn" class="btn btn-primary w-full p-4 rounded-lg font-semibold text-xl hidden">Volver a Jugar</button>
+    <!-- Modal para mensajes de error -->
+    <div id="modal" class="hidden">
+        <div class="modal-content">
+            <p id="modalMessage" class="text-lg text-white mb-4"></p>
+            <button id="modalCloseBtn" class="btn btn-primary p-3 rounded-lg font-semibold text-lg">Cerrar</button>
         </div>
     </div>
 
+    <div id="userIdDisplay"></div>
 </body>
 </html>
